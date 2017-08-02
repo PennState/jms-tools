@@ -12,11 +12,11 @@ import org.apache.activemq.ActiveMQConnectionFactory;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
-abstract class MessageProcessor {
+public abstract class MessageProcessor {
 
   boolean process = true;
 
-  abstract void handleMessage(Message message);
+  protected abstract void handleMessage(Message message);
 
   public MessageProcessor(String ip, String transportName) {
     log.info("In the message producer constructor with ip = " + ip + " and transport name = " + transportName);
