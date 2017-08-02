@@ -20,6 +20,7 @@ import lombok.extern.slf4j.Slf4j;
 public class MessageHandler {
 
   public static final int MIN_THRESHOLD = 3;
+  public static final int MIN_RECHECK_PERIOD = 250;
 
   List<MessageProcessor> handlerList = new ArrayList<>();
 
@@ -29,6 +30,7 @@ public class MessageHandler {
   Constructor<? extends MessageProcessor> constructor;
   Thread monitorThread;
   int messageThreshold = 10;
+  int recheckPeriod = 3000;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz, String ip, String transportName) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     this.clazz = clazz;
@@ -36,8 +38,7 @@ public class MessageHandler {
     this.transportName = transportName;
 
     constructor = clazz.getConstructor(ip.getClass(), transportName.getClass());
-    log.info("constructor == null?  " + (null == constructor));
-    log.info("Calling start monitor");
+    log.trace("Calling start monitor");
 
     startMonitor();
   }
@@ -50,6 +51,14 @@ public class MessageHandler {
     messageThreshold = threshold;
   }
 
+  public void setRecheckPeriod(int millis) throws IllegalStateException {
+    if (millis <= MIN_RECHECK_PERIOD) {
+      throw new IllegalStateException("Recheck period must be at least 250 milliseconds");
+    }
+
+    recheckPeriod = millis;
+  }
+  
   public void terminate() {
     for (MessageProcessor mp : handlerList) {
       mp.terminate();
@@ -62,11 +71,11 @@ public class MessageHandler {
     monitorThread = new Thread(new Runnable() {
       public void run() {
         try {
-          //log.info("Creating a connection");
+          log.trace("Creating a connection");
           Connection connection = new ActiveMQConnectionFactory("tcp://" + ip).createConnection();
-          //log.info("Starting the connection");
+          log.trace("Starting the connection");
           connection.start();
-          //log.info("Creating a session");
+          log.trace("Creating a session");
           Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
           Queue destination = session.createQueue(transportName);
@@ -86,28 +95,27 @@ public class MessageHandler {
             int msgCount = Collections.list(browser.getEnumeration()).size();
             log.info("Processed: " + (startingMessageCount - msgCount));
             startingMessageCount = msgCount;
-             //log.info("Queue depth = " + msgCount);
             try {
-              //log.info("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
+              log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
               if (handlerList.isEmpty()) {
-                log.info("Seeding the processing pool with a single instance");
+                log.trace("Seeding the processing pool with a single instance");
                 MessageProcessor mp = constructor.newInstance(ip, transportName);
                 handlerList.add(mp);
               } else if (msgCount > messageThreshold) {
-                log.info("Constructing a new Message Processor");
+                log.trace("Constructing a new Message Processor");
                 MessageProcessor mp = constructor.newInstance(ip, transportName);
                 handlerList.add(mp);
-                log.info("############# Now " + handlerList.size() + " processors");
+                log.trace("############# Now " + handlerList.size() + " processors");
               } else {
                 if (handlerList.size() > 1) {
-                  log.info("Removing a Message Processor");
+                  log.trace("Removing a Message Processor");
                   MessageProcessor mp = handlerList.remove(handlerList.size() - 1);
                   mp.terminate();
-                  log.info("############# Now " + handlerList.size() + " processors");
+                  log.trace("############# Now " + handlerList.size() + " processors");
                 }
               }
-              log.info("Sleeping for 3 seconds");
-              Thread.sleep(3000);
+              
+              Thread.sleep(recheckPeriod);
             } catch (InterruptedException e) {
               // TODO Auto-generated catch block
               e.printStackTrace();
