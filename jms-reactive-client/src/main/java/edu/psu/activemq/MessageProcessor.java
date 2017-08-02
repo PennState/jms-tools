@@ -15,6 +15,7 @@ import lombok.extern.slf4j.Slf4j;
 abstract class MessageProcessor {
 
   boolean process = true;
+  ErrorProcessor errorProcessor;
 
   abstract void handleMessage(Message message);
 
@@ -23,6 +24,11 @@ abstract class MessageProcessor {
     initialize(ip, transportName);
   }
 
+  public MessageProcessor(ErrorProcessor errorProcessor, String ip, String transportName) {
+    log.info("In the message producer constructor with ip = " + ip + " and transport name = " + transportName);
+    initialize(ip, transportName);
+  }
+  
   public void terminate() {
     process = false;
   }

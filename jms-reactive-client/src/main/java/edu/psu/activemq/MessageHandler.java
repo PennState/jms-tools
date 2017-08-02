@@ -41,8 +41,8 @@ public class MessageHandler {
     log.trace("Calling start monitor");
 
     startMonitor();
-  }
-
+  } 
+  
   public void setMessageThreshold(int threshold) throws IllegalStateException {
     if (threshold <= MIN_THRESHOLD) {
       throw new IllegalStateException("Threshold must be greater that 3");
@@ -116,20 +116,12 @@ public class MessageHandler {
               }
               
               Thread.sleep(recheckPeriod);
-            } catch (InterruptedException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-            } catch (InstantiationException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-            } catch (IllegalAccessException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-            } catch (IllegalArgumentException e) {
-              // TODO Auto-generated catch block
-              e.printStackTrace();
-            } catch (InvocationTargetException e) {
-              // TODO Auto-generated catch block
+            } catch (InterruptedException      | 
+                     InstantiationException    |
+                     IllegalAccessException    | 
+                     IllegalArgumentException  |
+                     InvocationTargetException e) {
+              
               e.printStackTrace();
             }
           }

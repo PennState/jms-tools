@@ -7,6 +7,9 @@ public class MessageHandlerFactory {
   Class<? extends MessageProcessor> handlerClass;
   String ip;
   String transportName;
+  String errorIp;
+  String errorTransportName;
+  TransportType errorTransportType;
   
   public MessageHandlerFactory setHandler(Class<? extends MessageProcessor> handlerClass) throws InstantiationException, IllegalAccessException {
     this.handlerClass = handlerClass;
@@ -20,6 +23,21 @@ public class MessageHandlerFactory {
   
   public MessageHandlerFactory setTransportName(String transportName) {
     this.transportName = transportName;
+    return this;
+  }
+  
+  public MessageHandlerFactory setErrorIp(String ip) {
+    this.errorIp = ip;
+    return this;
+  }
+  
+  public MessageHandlerFactory setErrorTransportName(String errorTransportName) {
+    this.errorTransportName = errorTransportName;
+    return this;
+  }
+  
+  public MessageHandlerFactory setErrorTransportType(TransportType transportType) {
+    this.errorTransportType = transportType;
     return this;
   }
   
