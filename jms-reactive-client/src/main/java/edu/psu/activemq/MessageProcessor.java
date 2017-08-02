@@ -1,4 +1,4 @@
-package edu.psu.activemq.services;
+package edu.psu.activemq;
 
 import javax.jms.Connection;
 import javax.jms.JMSException;

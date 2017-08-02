@@ -1,4 +1,4 @@
-package edu.psu.activemq.services;
+package edu.psu.activemq;
 
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
@@ -11,7 +11,6 @@ import javax.jms.JMSException;
 import javax.jms.Queue;
 import javax.jms.QueueBrowser;
 import javax.jms.Session;
-import javax.resource.spi.IllegalStateException;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 

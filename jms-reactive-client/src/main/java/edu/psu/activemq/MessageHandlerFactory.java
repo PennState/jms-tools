@@ -1,4 +1,4 @@
-package edu.psu.activemq.services;
+package edu.psu.activemq;
 
 import java.lang.reflect.InvocationTargetException;
 
@@ -7,7 +7,6 @@ public class MessageHandlerFactory {
   Class<? extends MessageProcessor> handlerClass;
   String ip;
   String transportName;
-  TransportType transportType = TransportType.QUEUE;
   
   public MessageHandlerFactory setHandler(Class<? extends MessageProcessor> handlerClass) throws InstantiationException, IllegalAccessException {
     this.handlerClass = handlerClass;
