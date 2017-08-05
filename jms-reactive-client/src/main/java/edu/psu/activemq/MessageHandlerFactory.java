@@ -42,6 +42,11 @@ public class MessageHandlerFactory {
   }
   
   public MessageHandler build() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-    return new MessageHandler(handlerClass, ip, transportName);
+    if(this.errorIp == null){
+      return new MessageHandler(handlerClass, ip, transportName);
+    }
+    else{
+      return new MessageHandler(handlerClass, ip, transportName, errorIp, errorTransportName, errorTransportType);
+    }
   }
 }

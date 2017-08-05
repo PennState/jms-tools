@@ -68,9 +68,9 @@ public abstract class MessageProcessor {
             
             Destination errorDestination = null;
             if (TransportType.TOPIC.equals(errorTransportType)) {
-              errorDestination = errorSession.createTopic(transportName);
+              errorDestination = errorSession.createTopic(errorTransportName);
             } else {
-              errorDestination = errorSession.createQueue(transportName);
+              errorDestination = errorSession.createQueue(errorTransportName);
             }
             
             
@@ -88,9 +88,12 @@ public abstract class MessageProcessor {
             message = consumer.receive();
             try {
               handleMessage(message);
-            } catch (UnableToProcessMessageException e) {
+            } catch (UnableToProcessMessageException | RuntimeException e) {
+              log.warn("Error processing message");
               if (errorProducer != null) {
+                log.debug("Sending to error queue");
                 //TODO - How do we format the message?
+                errorProducer.send(message);
               }
             }
           }
@@ -98,7 +101,7 @@ public abstract class MessageProcessor {
           connection.close();
           consumer.close();
         } catch (JMSException e) {
-
+          log.error("Exception processing message.");
           // TODO Auto-generated catch block
           e.printStackTrace();
         }

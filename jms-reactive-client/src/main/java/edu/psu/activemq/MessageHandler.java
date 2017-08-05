@@ -27,6 +27,9 @@ public class MessageHandler {
   Class<? extends MessageProcessor> clazz;
   String ip;
   String transportName;
+  String errorIp;
+  String errorTransportName;
+  TransportType errorTransportType;
   Constructor<? extends MessageProcessor> constructor;
   Thread monitorThread;
   int messageThreshold = 10;
@@ -38,6 +41,20 @@ public class MessageHandler {
     this.transportName = transportName;
 
     constructor = clazz.getConstructor(ip.getClass(), transportName.getClass());
+    log.trace("Calling start monitor");
+
+    startMonitor();
+  } 
+  
+  public MessageHandler(Class<? extends MessageProcessor> clazz, String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    this.clazz = clazz;
+    this.ip = ip;
+    this.transportName = transportName;
+    this.errorIp = errorIp;
+    this.errorTransportName = errorTransportName;
+    this.errorTransportType = errorTransportType;
+    
+    constructor = clazz.getConstructor(ip.getClass(), transportName.getClass(), errorIp.getClass(), errorTransportName.getClass(), errorTransportType.getClass());
     log.trace("Calling start monitor");
 
     startMonitor();
@@ -99,11 +116,11 @@ public class MessageHandler {
               log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
               if (handlerList.isEmpty()) {
                 log.trace("Seeding the processing pool with a single instance");
-                MessageProcessor mp = constructor.newInstance(ip, transportName);
+                MessageProcessor mp = buildNewMessageProcessor();
                 handlerList.add(mp);
               } else if (msgCount > messageThreshold) {
                 log.trace("Constructing a new Message Processor");
-                MessageProcessor mp = constructor.newInstance(ip, transportName);
+                MessageProcessor mp = buildNewMessageProcessor();
                 handlerList.add(mp);
                 log.trace("############# Now " + handlerList.size() + " processors");
               } else {
@@ -133,5 +150,14 @@ public class MessageHandler {
 
     log.info("Starting the monitor thread");
     monitorThread.start();
+  }
+  
+  private MessageProcessor buildNewMessageProcessor() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
+    if(errorIp == null){
+     return constructor.newInstance(ip, transportName);
+    }
+    else{
+      return constructor.newInstance(ip, transportName, errorIp, errorTransportName, errorTransportType);
+    }
   }
 }
