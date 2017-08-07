@@ -44,8 +44,8 @@ public class MessageHandler {
     log.trace("Calling start monitor");
 
     startMonitor();
-  } 
-  
+  }
+
   public MessageHandler(Class<? extends MessageProcessor> clazz, String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     this.clazz = clazz;
     this.ip = ip;
@@ -53,13 +53,13 @@ public class MessageHandler {
     this.errorIp = errorIp;
     this.errorTransportName = errorTransportName;
     this.errorTransportType = errorTransportType;
-    
+
     constructor = clazz.getConstructor(ip.getClass(), transportName.getClass(), errorIp.getClass(), errorTransportName.getClass(), errorTransportType.getClass());
     log.trace("Calling start monitor");
 
     startMonitor();
-  } 
-  
+  }
+
   public void setMessageThreshold(int threshold) throws IllegalStateException {
     if (threshold <= MIN_THRESHOLD) {
       throw new IllegalStateException("Threshold must be greater that 3");
@@ -75,7 +75,7 @@ public class MessageHandler {
 
     recheckPeriod = millis;
   }
-  
+
   public void terminate() {
     for (MessageProcessor mp : handlerList) {
       mp.terminate();
@@ -83,88 +83,84 @@ public class MessageHandler {
   }
 
   private void startMonitor() {
-
     log.info("Starting the monitor");
-    monitorThread = new Thread(new Runnable() {
-      public void run() {
+
+    try {
+      log.trace("Creating a connection");
+      Connection connection = new ActiveMQConnectionFactory("tcp://" + ip).createConnection();
+      log.trace("Starting the connection");
+      connection.start();
+      log.trace("Creating a session");
+      Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+
+      Queue destination = session.createQueue(transportName);
+
+      QueueBrowser browser;
+      try {
+        browser = session.createBrowser(destination);
+      } catch (JMSException e1) {
+        throw new RuntimeException("Boom");
+      }
+
+      @SuppressWarnings("unchecked")
+      int startingMessageCount = Collections.list(browser.getEnumeration())
+                                            .size();
+
+      while (true) {
+        @SuppressWarnings("unchecked")
+        int msgCount = Collections.list(browser.getEnumeration())
+                                  .size();
+        log.info("Processed: " + (startingMessageCount - msgCount));
+        startingMessageCount = msgCount;
         try {
-          log.trace("Creating a connection");
-          Connection connection = new ActiveMQConnectionFactory("tcp://" + ip).createConnection();
-          log.trace("Starting the connection");
-          connection.start();
-          log.trace("Creating a session");
-          Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-
-          Queue destination = session.createQueue(transportName);
-
-          QueueBrowser browser;
-          try {
-            browser = session.createBrowser(destination);
-          } catch (JMSException e1) {
-            throw new RuntimeException("Boom");
-          }
-
-          @SuppressWarnings("unchecked")
-          int startingMessageCount = Collections.list(browser.getEnumeration()).size();
-          
-          while (true) {
-            @SuppressWarnings("unchecked")
-            int msgCount = Collections.list(browser.getEnumeration()).size();
-            log.info("Processed: " + (startingMessageCount - msgCount));
-            startingMessageCount = msgCount;
-            try {
-              log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
-              if (handlerList.isEmpty()) {
-                log.trace("Seeding the processing pool with a single instance");
-                MessageProcessor mp = buildNewMessageProcessor();
-                handlerList.add(mp);
-              } else if (msgCount > messageThreshold) {
-                log.trace("Constructing a new Message Processor");
-                MessageProcessor mp = buildNewMessageProcessor();
-                handlerList.add(mp);
-                log.trace("############# Now " + handlerList.size() + " processors");
-              } else {
-                if (handlerList.size() > 1) {
-                  log.trace("Removing a Message Processor");
-                  MessageProcessor mp = handlerList.remove(handlerList.size() - 1);
-                  mp.terminate();
-                  log.trace("############# Now " + handlerList.size() + " processors");
-                }
-              }
-              
-              for(int i = 0; i < handlerList.size(); i++){
-                MessageProcessor mp = handlerList.get(i);
-                if(mp.isStopped()){
-                  log.trace("Removing stopped processor");
-                  handlerList.remove(i);
-                }
-              }
-              
-              Thread.sleep(recheckPeriod);
-            } catch (InterruptedException      | 
-                     InstantiationException    |
-                     IllegalAccessException    | 
-                     IllegalArgumentException  |
-                     InvocationTargetException e) {
-              
-              e.printStackTrace();
+          log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
+          if (handlerList.isEmpty()) {
+            log.trace("Seeding the processing pool with a single instance");
+            MessageProcessor mp = buildNewMessageProcessor();
+            handlerList.add(mp);
+          } else if (msgCount > messageThreshold) {
+            log.trace("Constructing a new Message Processor");
+            MessageProcessor mp = buildNewMessageProcessor();
+            handlerList.add(mp);
+            log.trace("############# Now " + handlerList.size() + " processors");
+          } else {
+            if (handlerList.size() > 1) {
+              log.trace("Removing a Message Processor");
+              MessageProcessor mp = handlerList.remove(handlerList.size() - 1);
+              mp.terminate();
+              log.trace("############# Now " + handlerList.size() + " processors");
             }
           }
-        } catch (JMSException e) {
-          e.printStackTrace();
+
+          for (int i = 0; i < handlerList.size(); i++) {
+            MessageProcessor mp = handlerList.get(i);
+            if (mp.isStopped()) {
+              log.trace("Removing stopped processor");
+              handlerList.remove(i);
+            }
+          }
+
+          Thread.sleep(recheckPeriod);
+        } catch (InterruptedException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+          log.error("Error in message handler", e);
         }
       }
-    });
-
-    log.info("Starting the monitor thread");
-    monitorThread.start();
-  }
-  
-  private MessageProcessor buildNewMessageProcessor() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException{
-    if(errorIp == null){
-     return constructor.newInstance(ip, transportName);
+    } catch (JMSException e) {
+      log.error("Error connecting to queue", e);
+      // try reconnecting after 30 seconds
+      try {
+        Thread.sleep(30000L);
+      } catch (InterruptedException ie) {
+        log.warn(ie.toString());
+      }
+      this.startMonitor();
     }
-    else{
+  }
+
+  private MessageProcessor buildNewMessageProcessor() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    if (errorIp == null) {
+      return constructor.newInstance(ip, transportName);
+    } else {
       return constructor.newInstance(ip, transportName, errorIp, errorTransportName, errorTransportType);
     }
   }
