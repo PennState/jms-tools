@@ -30,7 +30,7 @@ public abstract class MessageProcessor {
 
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
 
-  public MessageProcessor(String ip, String transportName, RedeliveryPolicy rd) {
+  public MessageProcessor(String ip, String transportName) {
     log.info("In the message producer constructor with ip = " + ip + " and transport name = " + transportName);
     initialize(ip, transportName, null, null, null);
   }
