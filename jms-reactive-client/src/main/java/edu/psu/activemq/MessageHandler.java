@@ -132,6 +132,14 @@ public class MessageHandler {
                 }
               }
               
+              for(int i = 0; i < handlerList.size(); i++){
+                MessageProcessor mp = handlerList.get(i);
+                if(mp.isStopped()){
+                  log.trace("Removing stopped processor");
+                  handlerList.remove(i);
+                }
+              }
+              
               Thread.sleep(recheckPeriod);
             } catch (InterruptedException      | 
                      InstantiationException    |
