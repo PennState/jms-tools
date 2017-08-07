@@ -46,11 +46,11 @@ public abstract class MessageProcessor {
   }
 
   private void initialize(String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) {
-
+    log.info("Initializing message processor...");
+    
     Thread t = new Thread(new Runnable() {
 
-      public void run() {
-        
+      public void run() {        
         ActiveMQMessageConsumer consumer = null;
         ActiveMQConnection connection = null;
         
@@ -68,7 +68,8 @@ public abstract class MessageProcessor {
           consumer = (ActiveMQMessageConsumer) session.createConsumer(destination);
           
         } catch (JMSException e) {
-          // TODO - revisit this
+          log.info("Error creating message consumer", e);
+          stopped = true;
           throw new RuntimeException("Failed to initialize processing queue");
         }
         
@@ -76,7 +77,7 @@ public abstract class MessageProcessor {
         MessageProducer errorProducer = null;
         if (handleErrors) {
           try {
-            errorConnection = new ActiveMQConnectionFactory("tcp://" + ip).createConnection();
+            errorConnection = new ActiveMQConnectionFactory("tcp://" + errorIp).createConnection();
             errorConnection.start();
             Session errorSession = connection.createSession(false,  Session.AUTO_ACKNOWLEDGE);
             
@@ -88,8 +89,9 @@ public abstract class MessageProcessor {
             }
                         
             errorProducer = errorSession.createProducer(errorDestination);
-          } catch (JMSException e) {
-            // TODO - Revisit this
+          } catch (JMSException e) {            
+            log.error("Error creating error producer", e);
+            stopped = true;
             throw new RuntimeException("Failed to initialize the error endpoint");
           }
         }
