@@ -115,11 +115,7 @@ public class MessageHandler {
         startingMessageCount = msgCount;
         try {
           log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
-          if (handlerList.isEmpty()) {
-            log.trace("Seeding the processing pool with a single instance");
-            MessageProcessor mp = buildNewMessageProcessor();
-            handlerList.add(mp);
-          } else if (msgCount > messageThreshold && handlerList.size() < cores) {
+          if (msgCount > messageThreshold && handlerList.size() < cores) {
             log.trace("Constructing a new Message Processor");
             MessageProcessor mp = buildNewMessageProcessor();
             handlerList.add(mp);
@@ -155,6 +151,17 @@ public class MessageHandler {
         log.warn(ie.toString());
       }
       this.startMonitor();
+      
+      if (handlerList.isEmpty()) {
+        log.trace("Seeding the processing pool with a single instance");
+        MessageProcessor mp;
+        try {
+          mp = buildNewMessageProcessor();
+          handlerList.add(mp);
+        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
+          log.error(e1.getMessage());
+        }
+      }
     }
   }
 
