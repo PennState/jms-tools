@@ -34,6 +34,7 @@ public class MessageHandler {
   Thread monitorThread;
   int messageThreshold = 10;
   int recheckPeriod = 3000;
+  int cores;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz, String ip, String transportName) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     this.clazz = clazz;
@@ -42,7 +43,7 @@ public class MessageHandler {
 
     constructor = clazz.getConstructor(ip.getClass(), transportName.getClass());
     log.trace("Calling start monitor");
-
+    cores = Runtime.getRuntime().availableProcessors();
     startMonitor();
   }
 
@@ -118,7 +119,7 @@ public class MessageHandler {
             log.trace("Seeding the processing pool with a single instance");
             MessageProcessor mp = buildNewMessageProcessor();
             handlerList.add(mp);
-          } else if (msgCount > messageThreshold) {
+          } else if (msgCount > messageThreshold && handlerList.size() < cores) {
             log.trace("Constructing a new Message Processor");
             MessageProcessor mp = buildNewMessageProcessor();
             handlerList.add(mp);
