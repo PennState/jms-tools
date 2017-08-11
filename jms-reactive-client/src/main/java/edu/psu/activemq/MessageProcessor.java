@@ -27,25 +27,37 @@ public abstract class MessageProcessor {
   boolean process = true;
   boolean handleErrors = false;
   boolean stopped = false;
+  String ip = null;
+  String transportName = null;
+  String errorIp = null;
+  String errorTransportName = null;
+  TransportType errorTransportType = null;
 
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
 
   public MessageProcessor(String ip, String transportName) {
+    this(ip, transportName, null, null, null);
     log.info("In the message producer constructor with ip = " + ip + " and transport name = " + transportName);
-    initialize(ip, transportName, null, null, null);
   }
 
   public MessageProcessor(String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) {
     log.info("In the message producer constructor with ip = " + ip + " and transport name = " + transportName);
     handleErrors = true;
-    initialize(ip, transportName, errorIp, errorTransportName, errorTransportType);
+    this.ip = ip;
+    this.transportName = transportName;
+    this.errorIp = errorIp;
+    this.errorTransportName = errorTransportName;
+    this.errorTransportType = errorTransportType;
+    //initialize(ip, transportName, errorIp, errorTransportName, errorTransportType);
   }
 
   public void terminate() {
     process = false;
   }
 
-  private void initialize(String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) {
+  //void initialize(String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) {
+
+  void initialize() {
     log.info("Initializing message processor...");
     
     Thread t = new Thread(new Runnable() {
