@@ -103,8 +103,8 @@ public abstract class MessageProcessor {
             try {
               handleMessage(message);
               consumer.acknowledge();
-            } catch (UnableToProcessMessageException | RuntimeException e) {
-              log.warn("Error processing message");                                          
+            } catch (Exception e) {
+              log.warn("Error processing message", e);                                          
               if (errorProducer != null) {
                 log.info("Sending to error queue");                
                 ActiveMQMessage msg = (ActiveMQMessage)message;     
