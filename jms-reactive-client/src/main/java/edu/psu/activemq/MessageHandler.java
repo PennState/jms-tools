@@ -34,6 +34,7 @@ public class MessageHandler {
   Thread monitorThread;
   int messageThreshold = 10;
   int recheckPeriod = 3000;
+  int cores;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz, String ip, String transportName) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     this.clazz = clazz;
@@ -42,7 +43,7 @@ public class MessageHandler {
 
     constructor = clazz.getConstructor(ip.getClass(), transportName.getClass());
     log.trace("Calling start monitor");
-
+    cores = Runtime.getRuntime().availableProcessors();
     startMonitor();
   }
 
@@ -114,14 +115,9 @@ public class MessageHandler {
         startingMessageCount = msgCount;
         try {
           log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
-          if (handlerList.isEmpty()) {
-            log.trace("Seeding the processing pool with a single instance");
-            MessageProcessor mp = buildNewMessageProcessor();
-            handlerList.add(mp);
-          } else if (msgCount > messageThreshold) {
+          if (msgCount > messageThreshold && handlerList.size() < cores) {
             log.trace("Constructing a new Message Processor");
-            MessageProcessor mp = buildNewMessageProcessor();
-            handlerList.add(mp);
+            handlerList.add(buildNewMessageProcessor());
             log.trace("############# Now " + handlerList.size() + " processors");
           } else {
             if (handlerList.size() > 1) {
@@ -154,14 +150,26 @@ public class MessageHandler {
         log.warn(ie.toString());
       }
       this.startMonitor();
+      
+      if (handlerList.isEmpty()) {
+        log.trace("Seeding the processing pool with a single instance");
+        try {
+          handlerList.add(buildNewMessageProcessor());
+        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
+          log.error(e1.getMessage());
+        }
+      }
     }
   }
 
   private MessageProcessor buildNewMessageProcessor() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    MessageProcessor mp = null;
     if (errorIp == null) {
-      return constructor.newInstance(ip, transportName);
+      mp = constructor.newInstance(ip, transportName);
     } else {
-      return constructor.newInstance(ip, transportName, errorIp, errorTransportName, errorTransportType);
+      mp = constructor.newInstance(ip, transportName, errorIp, errorTransportName, errorTransportType);
     }
+    mp.initialize();
+    return mp;
   }
 }
