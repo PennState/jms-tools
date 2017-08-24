@@ -8,7 +8,7 @@ public class PropertyUtil {
       return property;
     }
     
-    String envVar = System.getenv(name);
+    String envVar = System.getenv(name.toUpperCase().replaceAll("\\.", "_"));
     if(envVar != null){
       return envVar;
     }
