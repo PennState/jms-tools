@@ -42,9 +42,7 @@ public class MessageHandler {
     this.transportName = transportName;
 
     constructor = clazz.getConstructor(ip.getClass(), transportName.getClass());
-    log.trace("Calling start monitor");
-    cores = Runtime.getRuntime().availableProcessors();
-    startMonitor();
+    this.init();
   }
 
   public MessageHandler(Class<? extends MessageProcessor> clazz, String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -56,11 +54,16 @@ public class MessageHandler {
     this.errorTransportType = errorTransportType;
 
     constructor = clazz.getConstructor(ip.getClass(), transportName.getClass(), errorIp.getClass(), errorTransportName.getClass(), errorTransportType.getClass());
-    log.trace("Calling start monitor");
-
-    startMonitor();
+    
+    this.init();
   }
 
+  private void init(){
+    cores = Runtime.getRuntime().availableProcessors();
+    log.trace("Calling start monitor");    
+    startMonitor();
+  }
+  
   public void setMessageThreshold(int threshold) throws IllegalStateException {
     if (threshold <= MIN_THRESHOLD) {
       throw new IllegalStateException("Threshold must be greater that 3");
@@ -136,6 +139,15 @@ public class MessageHandler {
             }
           }
 
+          if (handlerList.isEmpty()) {
+            log.trace("Seeding the processing pool with a single instance");
+            try {
+              handlerList.add(buildNewMessageProcessor());
+            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
+              log.error(e1.getMessage());
+            }
+          }
+          
           Thread.sleep(recheckPeriod);
         } catch (InterruptedException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
           log.error("Error in message handler", e);
@@ -149,17 +161,10 @@ public class MessageHandler {
       } catch (InterruptedException ie) {
         log.warn(ie.toString());
       }
-      this.startMonitor();
       
-      if (handlerList.isEmpty()) {
-        log.trace("Seeding the processing pool with a single instance");
-        try {
-          handlerList.add(buildNewMessageProcessor());
-        } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
-          log.error(e1.getMessage());
-        }
-      }
+      this.startMonitor();
     }
+      
   }
 
   private MessageProcessor buildNewMessageProcessor() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
