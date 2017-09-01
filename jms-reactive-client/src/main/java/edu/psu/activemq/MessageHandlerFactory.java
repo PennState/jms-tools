@@ -5,29 +5,26 @@ import java.lang.reflect.InvocationTargetException;
 public class MessageHandlerFactory {
   
   Class<? extends MessageProcessor> handlerClass;
-  String ip;
-  String transportName;
-  String errorIp;
+  String brokerUrl;
+  String transportName;  
   String errorTransportName;
+  String username;
+  String password;
   TransportType errorTransportType;
+  boolean loadFromProperties = false;
   
   public MessageHandlerFactory setHandler(Class<? extends MessageProcessor> handlerClass) throws InstantiationException, IllegalAccessException {
     this.handlerClass = handlerClass;
     return this;
   }
   
-  public MessageHandlerFactory setIp(String ip) {
-    this.ip = ip;
+  public MessageHandlerFactory setBrokerUrl(String brokerUrl) {
+    this.brokerUrl = brokerUrl;
     return this;
   }
   
   public MessageHandlerFactory setTransportName(String transportName) {
     this.transportName = transportName;
-    return this;
-  }
-  
-  public MessageHandlerFactory setErrorIp(String ip) {
-    this.errorIp = ip;
     return this;
   }
   
@@ -41,12 +38,32 @@ public class MessageHandlerFactory {
     return this;
   }
   
+  public MessageHandlerFactory setUsername(String username) {
+    this.username = username;
+    return this;
+  }
+  
+  public MessageHandlerFactory setPassword(String password) {
+    this.password = password;
+    return this;
+  }
+  
+  public MessageHandlerFactory isLoadFromProperties(boolean loadFromProperties){
+    this.loadFromProperties = loadFromProperties;
+    return this;
+  }
+  
   public MessageHandler build() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-    if(this.errorIp == null){
-      return new MessageHandler(handlerClass, ip, transportName);
-    }
-    else{
-      return new MessageHandler(handlerClass, ip, transportName, errorIp, errorTransportName, errorTransportType);
-    }
+    MessageHandler mh = new MessageHandler(handlerClass);
+    mh.setBrokerUrl(brokerUrl);
+    mh.setErrorTransportName(errorTransportName);
+    mh.setErrorTransportType(errorTransportType);
+    mh.setTransportName(transportName);
+    mh.setUsername(username);
+    mh.setPassword(password);
+    mh.setLoadFromProperties(loadFromProperties);
+    
+    mh.init();
+    return mh;
   }
 }

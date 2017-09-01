@@ -12,50 +12,46 @@ import javax.jms.Queue;
 import javax.jms.Session;
 
 import org.apache.activemq.ActiveMQConnection;
-import org.apache.activemq.ActiveMQConnectionFactory;
 import org.apache.activemq.ActiveMQMessageConsumer;
 import org.apache.activemq.RedeliveryPolicy;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
 
 import edu.psu.activemq.exception.UnableToProcessMessageException;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Data
 public abstract class MessageProcessor {
 
-  boolean process = true;
-  boolean handleErrors = false;
+  @Getter(value=AccessLevel.NONE)
+  @Setter(value=AccessLevel.NONE)
+  boolean process = true;  
+  
+  @Getter(value=AccessLevel.NONE)
+  @Setter(value=AccessLevel.NONE)
   boolean stopped = false;
-  String ip = null;
+  
+  String brokerUrl = null;
   String transportName = null;
-  String errorIp = null;
   String errorTransportName = null;
-  TransportType errorTransportType = null;
+  TransportType errorTransportType = null;  
+  String username;
+  String password;
 
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
 
-  public MessageProcessor(String ip, String transportName) {
-    this(ip, transportName, null, null, null);
-    log.info("In the message producer constructor with ip = " + ip + " and transport name = " + transportName);
-  }
-
-  public MessageProcessor(String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) {
-    log.info("In the message producer constructor with ip = " + ip + " and transport name = " + transportName);
-    handleErrors = true;
-    this.ip = ip;
-    this.transportName = transportName;
-    this.errorIp = errorIp;
-    this.errorTransportName = errorTransportName;
-    this.errorTransportType = errorTransportType;
-    //initialize(ip, transportName, errorIp, errorTransportName, errorTransportType);
+  public MessageProcessor() {
+    
   }
 
   public void terminate() {
     process = false;
   }
-
-  //void initialize(String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) {
 
   void initialize() {
     log.info("Initializing message processor...");
@@ -67,7 +63,7 @@ public abstract class MessageProcessor {
         ActiveMQConnection connection = null;
         
         try {
-          connection = (ActiveMQConnection) new ActiveMQConnectionFactory("tcp://" + ip).createConnection();
+          connection = (ActiveMQConnection) MessageHandler.buildActivemqConnection(brokerUrl, username, password);
           
           RedeliveryPolicy rd = new RedeliveryPolicy();          
           rd.setMaximumRedeliveries(2);
@@ -87,9 +83,9 @@ public abstract class MessageProcessor {
         
         Connection errorConnection = null;
         MessageProducer errorProducer = null;
-        if (handleErrors) {
+        if (errorTransportName != null) {
           try {
-            errorConnection = new ActiveMQConnectionFactory("tcp://" + errorIp).createConnection();
+            errorConnection = MessageHandler.buildActivemqConnection(brokerUrl, username, password);
             errorConnection.start();
             Session errorSession = connection.createSession(false,  Session.AUTO_ACKNOWLEDGE);
             

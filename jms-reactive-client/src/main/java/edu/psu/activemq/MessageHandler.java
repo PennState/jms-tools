@@ -14,51 +14,69 @@ import javax.jms.Session;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 
+import edu.psu.activemq.util.PropertyUtil;
+import lombok.AccessLevel;
+import lombok.Data;
+import lombok.Getter;
+import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
 @Slf4j
+@Data
 public class MessageHandler {
 
   public static final int MIN_THRESHOLD = 3;
   public static final int MIN_RECHECK_PERIOD = 250;
 
+  public static final String BROKER_URL_PROP_NAME = "broker.url";
+  public static final String TRANSPORT_NAME_PROP_NAME = "queue.name";
+  public static final String BROKER_USERNAME_PROP_NAME = "broker.username";
+  public static final String BROKER_PASSWORD_PROP_NAME = "broker.password";
+  public static final String ERROR_TRANSPORT_NAME_PROP_NAME = "error.transport.name";
+  public static final String ERROR_TRANSPORT_TYPE_PROP_NAME = "error.transport.type";
+  
+  @Getter(value=AccessLevel.NONE)
+  @Setter(value=AccessLevel.NONE)
   List<MessageProcessor> handlerList = new ArrayList<>();
 
+  @Getter(value=AccessLevel.NONE)
+  @Setter(value=AccessLevel.NONE)
   Class<? extends MessageProcessor> clazz;
-  String ip;
-  String transportName;
-  String errorIp;
-  String errorTransportName;
-  TransportType errorTransportType;
+
+  @Getter(value=AccessLevel.NONE)
+  @Setter(value=AccessLevel.NONE)
   Constructor<? extends MessageProcessor> constructor;
+  
+  @Getter(value=AccessLevel.NONE)
+  @Setter(value=AccessLevel.NONE)
   Thread monitorThread;
+  
+  boolean loadFromProperties = false;
+  String brokerUrl;
+  String transportName;  
+  String errorTransportName;
+  String username;
+  String password;
+  TransportType errorTransportType;  
+  
   int messageThreshold = 10;
   int recheckPeriod = 3000;
   int cores;
 
-  public MessageHandler(Class<? extends MessageProcessor> clazz, String ip, String transportName) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-    this.clazz = clazz;
-    this.ip = ip;
-    this.transportName = transportName;
-
-    constructor = clazz.getConstructor(ip.getClass(), transportName.getClass());
-    this.init();
+  public MessageHandler(Class<? extends MessageProcessor> clazz) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+    constructor = clazz.getConstructor();            
   }
 
-  public MessageHandler(Class<? extends MessageProcessor> clazz, String ip, String transportName, String errorIp, String errorTransportName, TransportType errorTransportType) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-    this.clazz = clazz;
-    this.ip = ip;
-    this.transportName = transportName;
-    this.errorIp = errorIp;
-    this.errorTransportName = errorTransportName;
-    this.errorTransportType = errorTransportType;
-
-    constructor = clazz.getConstructor(ip.getClass(), transportName.getClass(), errorIp.getClass(), errorTransportName.getClass(), errorTransportType.getClass());
+  public void init(){
+    if(loadFromProperties){
+      brokerUrl = PropertyUtil.getProperty(BROKER_URL_PROP_NAME);
+      transportName = PropertyUtil.getProperty(TRANSPORT_NAME_PROP_NAME);
+      errorTransportName = PropertyUtil.getProperty(ERROR_TRANSPORT_NAME_PROP_NAME);
+      username = PropertyUtil.getProperty(BROKER_USERNAME_PROP_NAME);
+      password = PropertyUtil.getProperty(BROKER_PASSWORD_PROP_NAME);
+      errorTransportType = TransportType.valueOf(PropertyUtil.getProperty(ERROR_TRANSPORT_TYPE_PROP_NAME));
+    }    
     
-    this.init();
-  }
-
-  private void init(){
     cores = Runtime.getRuntime().availableProcessors();
     log.trace("Calling start monitor");    
     startMonitor();
@@ -91,7 +109,7 @@ public class MessageHandler {
 
     try {
       log.trace("Creating a connection");
-      Connection connection = new ActiveMQConnectionFactory("tcp://" + ip).createConnection();
+      Connection connection = buildActivemqConnection(brokerUrl, username, password);
       log.trace("Starting the connection");
       connection.start();
       log.trace("Creating a session");
@@ -168,13 +186,27 @@ public class MessageHandler {
   }
 
   private MessageProcessor buildNewMessageProcessor() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
-    MessageProcessor mp = null;
-    if (errorIp == null) {
-      mp = constructor.newInstance(ip, transportName);
-    } else {
-      mp = constructor.newInstance(ip, transportName, errorIp, errorTransportName, errorTransportType);
-    }
+    MessageProcessor mp = constructor.newInstance();
+    mp.setBrokerUrl(brokerUrl);
+    mp.setErrorTransportName(errorTransportName);
+    mp.setErrorTransportType(errorTransportType);
+    mp.setTransportName(transportName);
+    mp.setUsername(username);
+    mp.setPassword(password);
+    
     mp.initialize();
     return mp;
+  }
+  
+  protected static Connection buildActivemqConnection(String url, String username, String password) throws JMSException{
+    ActiveMQConnectionFactory factory = new ActiveMQConnectionFactory(url);
+    if(username != null){
+      factory.setUserName(username);
+    }
+    if(password != null){
+      factory.setPassword(password);
+    }
+    
+    return factory.createConnection();
   }
 }
