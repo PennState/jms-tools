@@ -20,7 +20,7 @@
     <java.compiler.source>1.8</java.compiler.source>
     <java.compiler.target>1.8</java.compiler.target>
 
-    <activemq.version>5.15.0</activemq.version>
+    <activemq.version>5.15.3</activemq.version>
     <lombok.version>1.16.18</lombok.version>
   </properties>
 
