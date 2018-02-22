@@ -162,7 +162,7 @@ public class MessageHandler {
             try {
               handlerList.add(buildNewMessageProcessor());
             } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
-              log.error(e1.getMessage());
+              log.error("Error building new message processor: " + e1.getMessage(), e1);
             }
           }
           
