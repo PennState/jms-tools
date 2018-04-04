@@ -14,6 +14,7 @@ import javax.jms.Session;
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQMessageConsumer;
 import org.apache.activemq.RedeliveryPolicy;
+import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
 
@@ -111,6 +112,15 @@ public abstract class MessageProcessor {
             try {
               handleMessage(message);
               consumer.acknowledge();
+            } catch (UnableToProcessMessageException upme) {
+              if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
+                message.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
+              } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
+                continue;
+              } else {
+                //Go to the default action
+                throw upme;
+              }
             } catch (Exception e) {
               log.warn("Error processing message", e);                                          
               if (errorProducer != null) {
@@ -118,7 +128,7 @@ public abstract class MessageProcessor {
                 ActiveMQMessage msg = (ActiveMQMessage)message;     
                 msg.setReadOnlyProperties(false);
                 msg.setStringProperty("error", e.getMessage());
-                msg.setStringProperty("errorStackTrace", getStackTrace(e));                
+                msg.setStringProperty("errorStackTrace", getStackTrace(e));
                 errorProducer.send(msg);
                 consumer.acknowledge();
               }
