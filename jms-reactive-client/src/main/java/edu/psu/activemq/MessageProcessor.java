@@ -13,6 +13,7 @@ import javax.jms.Session;
 
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQMessageConsumer;
+import org.apache.activemq.ActiveMQMessageProducer;
 import org.apache.activemq.RedeliveryPolicy;
 import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.command.ActiveMQMessage;
@@ -61,6 +62,7 @@ public abstract class MessageProcessor {
 
       public void run() {
         ActiveMQMessageConsumer consumer = null;
+        ActiveMQMessageProducer producer = null;
         ActiveMQConnection connection = null;
 
         try {
@@ -76,6 +78,8 @@ public abstract class MessageProcessor {
 
           Queue destination = session.createQueue(transportName);
           consumer = (ActiveMQMessageConsumer) session.createConsumer(destination);
+          //Used for re-queuing messages at the users requests
+          producer = (ActiveMQMessageProducer) session.createProducer(destination);
 
         } catch (JMSException e) {
           log.info("Error creating message consumer", e);
@@ -117,6 +121,7 @@ public abstract class MessageProcessor {
               } catch (UnableToProcessMessageException upme) {
                 if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
                   message.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
+                  producer.send(message);
                 } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
                   continue;
                 } else {
