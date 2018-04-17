@@ -32,6 +32,7 @@ public class MessageHandler {
   public static final String TRANSPORT_NAME_PROP_NAME = "queue.name";
   public static final String BROKER_USERNAME_PROP_NAME = "broker.username";
   public static final String BROKER_PASSWORD_PROP_NAME = "broker.password";
+  public static final String REQUEST_RETRY_THRESHOLD = "broker.retry.threshold";
   public static final String ERROR_TRANSPORT_NAME_PROP_NAME = "error.transport.name";
   public static final String ERROR_TRANSPORT_TYPE_PROP_NAME = "error.transport.type";
   
@@ -58,6 +59,7 @@ public class MessageHandler {
   String username;
   String password;
   TransportType errorTransportType;  
+  int requestRetryThreshold;
   
   int messageThreshold = 10;
   int recheckPeriod = 3000;
@@ -75,6 +77,8 @@ public class MessageHandler {
       username = PropertyUtil.getProperty(BROKER_USERNAME_PROP_NAME);
       password = PropertyUtil.getProperty(BROKER_PASSWORD_PROP_NAME);
       errorTransportType = TransportType.valueOf(PropertyUtil.getProperty(ERROR_TRANSPORT_TYPE_PROP_NAME));
+      String retryThreshold = PropertyUtil.getProperty(REQUEST_RETRY_THRESHOLD);
+      requestRetryThreshold = retryThreshold == null ? 3 : Integer.parseInt(retryThreshold);
     }    
     
     cores = Runtime.getRuntime().availableProcessors();
@@ -193,6 +197,7 @@ public class MessageHandler {
     mp.setTransportName(transportName);
     mp.setUsername(username);
     mp.setPassword(password);
+    mp.setRequestRetryThreshold(requestRetryThreshold);
     
     mp.initialize();
     return mp;
