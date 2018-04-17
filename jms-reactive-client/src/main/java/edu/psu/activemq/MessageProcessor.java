@@ -50,7 +50,6 @@ public abstract class MessageProcessor {
   ActiveMQMessageProducer producer = null;
   MessageProducer errorProducer = null;
 
-  
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
 
   public MessageProcessor() {
@@ -67,7 +66,7 @@ public abstract class MessageProcessor {
     Thread t = new Thread(new Runnable() {
 
       public void run() {
-        
+
         ActiveMQConnection connection = null;
 
         try {
@@ -83,7 +82,7 @@ public abstract class MessageProcessor {
 
           Queue destination = session.createQueue(transportName);
           consumer = (ActiveMQMessageConsumer) session.createConsumer(destination);
-          //Used for re-queuing messages at the users requests
+          // Used for re-queuing messages at the users requests
           producer = (ActiveMQMessageProducer) session.createProducer(destination);
 
         } catch (JMSException e) {
@@ -119,31 +118,27 @@ public abstract class MessageProcessor {
           while (process) {
             message = consumer.receive();
             try {
-              try {
-                handleMessage(message);
-                consumer.acknowledge();
-              } catch (UnableToProcessMessageException upme) {
-                if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
-                  ActiveMQMessage msg = (ActiveMQMessage)message;
-                  msg.setReadOnlyProperties(false);
-                  msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
+              handleMessage(message);
+              consumer.acknowledge();
+            } catch (UnableToProcessMessageException upme) {
+              if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
+                ActiveMQMessage msg = (ActiveMQMessage) message;
+                msg.setReadOnlyProperties(false);
+                msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
 
-                  int retryCount = message.getIntProperty("JMSXDeliveryCount");
-                  if (retryCount >= requestRetryThreshold) {
-                    processFailureMessage(message, upme);
-                  } else {
-                    msg.setIntProperty("JMSXDeliveryCount", ++retryCount);
-                  }
-                  
-                  producer.send(msg);
-                } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
-                  continue;
-                } else {
+                int retryCount = message.getIntProperty("JMSXDeliveryCount");
+                if (retryCount >= requestRetryThreshold) {
                   processFailureMessage(message, upme);
+                } else {
+                  msg.setIntProperty("JMSXDeliveryCount", ++retryCount);
                 }
+
+                producer.send(msg);
+              } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
+                continue;
+              } else {
+                processFailureMessage(message, upme);
               }
-            } catch (Exception e) {
-              processFailureMessage(message, e);
             }
           }
         } catch (Exception e) {
@@ -179,12 +174,13 @@ public abstract class MessageProcessor {
         if (e instanceof UnableToProcessMessageException) {
           msg.setStringProperty("shortDescription", ((UnableToProcessMessageException) e).getShortDescription());
         } else {
-          //Try to grab something for the short Message
+          // Try to grab something for the short Message
           String shortMessage = e.getMessage();
           int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
-          msg.setStringProperty("shortDescription", e.getMessage().substring(0, shortMessageLength));
+          msg.setStringProperty("shortDescription", e.getMessage()
+                                                     .substring(0, shortMessageLength));
         }
-       
+
         msg.setStringProperty("error", e.getMessage());
         msg.setStringProperty("errorStackTrace", getStackTrace(e));
         errorProducer.send(msg);
@@ -193,7 +189,7 @@ public abstract class MessageProcessor {
         // TODO Auto-generated catch block
         e1.printStackTrace();
       }
-      
+
     } else {
       try {
         consumer.rollback();
@@ -203,7 +199,7 @@ public abstract class MessageProcessor {
       }
     }
   }
-  
+
   private String getStackTrace(Exception e) {
     StringWriter sw = new StringWriter();
     PrintWriter pw = new PrintWriter(sw);
