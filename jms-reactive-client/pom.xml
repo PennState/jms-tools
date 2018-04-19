@@ -21,6 +21,10 @@
     <java.compiler.target>1.8</java.compiler.target>
 
     <activemq.version>5.15.3</activemq.version>
+    <junit-qualifier>-M1</junit-qualifier>
+    <junit-minor.version>2.0</junit-minor.version>
+    <junit-jupiter.version>5.${junit-minor.version}${junit-qualifier}</junit-jupiter.version>
+    <junit-platform.version>1.${junit-minor.version}${junit-qualifier}</junit-platform.version>
     <lombok.version>1.16.18</lombok.version>
   </properties>
 
@@ -30,6 +34,18 @@
       <url>https://oss.sonatype.org/content/repositories/snapshots</url>
     </snapshotRepository>
   </distributionManagement>
+
+  <dependencyManagement>
+    <dependencies>
+      <dependency>
+        <groupId>org.junit</groupId>
+        <artifactId>junit-bom</artifactId>
+        <version>${junit-jupiter.version}</version>
+        <type>pom</type>
+        <scope>import</scope>
+      </dependency>
+    </dependencies>
+  </dependencyManagement>
 
   <dependencies>
     <dependency>
@@ -42,6 +58,21 @@
       <groupId>org.apache.activemq</groupId>
       <artifactId>activemq-client</artifactId>
       <version>${activemq.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-api</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-params</artifactId>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.junit.jupiter</groupId>
+      <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
     </dependency>
   </dependencies>
 
@@ -160,6 +191,18 @@
               <versionTagPrefix>JRC-</versionTagPrefix>
             </flowInitContext>
           </configuration>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.21.0</version>
+            <dependencies>
+                <dependency>
+                    <groupId>org.junit.platform</groupId>
+                    <artifactId>junit-platform-surefire-provider</artifactId>
+                    <version>${junit-platform.version}</version>
+                </dependency>
+            </dependencies>
         </plugin>
       </plugins>
     </pluginManagement>
