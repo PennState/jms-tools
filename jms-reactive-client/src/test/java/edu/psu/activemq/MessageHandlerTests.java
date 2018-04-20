@@ -60,4 +60,48 @@ public class MessageHandlerTests {
         assertThat(throwable.getMessage()).isEqualTo(MessageHandler.MESSAGE_QUEUE_OR_TOPIC_ONLY);
     }
 
+    @Test
+    void exitsIfRequiredBrokerUrlParameterIsMissing() {
+        System.setProperty(MessageHandler.TRANSPORT_NAME_PROP_NAME, "transport.name");
+        System.setProperty(MessageHandler.BROKER_USERNAME_PROP_NAME, "broker.username");
+        System.setProperty(MessageHandler.BROKER_PASSWORD_PROP_NAME, "broker.password");
+
+        Throwable throwable = assertThrows(IllegalArgumentException.class, () -> messageHandler.validateConfiguration());
+
+        assertThat(throwable.getMessage()).isEqualTo(MessageHandler.MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY);
+    }
+
+    @Test
+    void exitsIfRequiredTransportNameParameterIsMissing() {
+        System.setProperty(MessageHandler.BROKER_URL_PROP_NAME, "broker.url");
+        System.setProperty(MessageHandler.BROKER_USERNAME_PROP_NAME, "broker.username");
+        System.setProperty(MessageHandler.BROKER_PASSWORD_PROP_NAME, "broker.password");
+
+        Throwable throwable = assertThrows(IllegalArgumentException.class, () -> messageHandler.validateConfiguration());
+
+        assertThat(throwable.getMessage()).isEqualTo(MessageHandler.MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY);
+    }
+
+    @Test
+    void exitsIfRequiredUsernameParameterIsMissing() {
+        System.setProperty(MessageHandler.BROKER_URL_PROP_NAME, "broker.url");
+        System.setProperty(MessageHandler.TRANSPORT_NAME_PROP_NAME, "transport.name");
+        System.setProperty(MessageHandler.BROKER_PASSWORD_PROP_NAME, "broker.password");
+
+        Throwable throwable = assertThrows(IllegalArgumentException.class, () -> messageHandler.validateConfiguration());
+
+        assertThat(throwable.getMessage()).isEqualTo(MessageHandler.MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY);
+    }
+
+    @Test
+    void exitsIfRequiredPasswordParameterIsMissing() {
+        System.setProperty(MessageHandler.BROKER_URL_PROP_NAME, "broker.url");
+        System.setProperty(MessageHandler.TRANSPORT_NAME_PROP_NAME, "transport.name");
+        System.setProperty(MessageHandler.BROKER_USERNAME_PROP_NAME, "broker.username");
+
+        Throwable throwable = assertThrows(IllegalArgumentException.class, () -> messageHandler.validateConfiguration());
+
+        assertThat(throwable.getMessage()).isEqualTo(MessageHandler.MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY);
+    }
+
 }

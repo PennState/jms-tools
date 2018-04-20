@@ -37,6 +37,7 @@ public class MessageHandler {
   public static final String ERROR_TRANSPORT_TYPE_PROP_NAME = "error.transport.type";
 
   public static final String MESSAGE_QUEUE_OR_TOPIC_ONLY = "If provided, the error transport type parameter must be set to either QUEUE or TOPIC";
+  public static final String MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY = "Broker url, queue name, username and password are required configuration properties with no defaults";
   
   @Getter(value=AccessLevel.NONE)
   @Setter(value=AccessLevel.NONE)
@@ -77,8 +78,16 @@ public class MessageHandler {
     try {
       if(loadFromProperties){
         parseConfigurationFromProperties();
-      }    
+      }
+      validateConfiguration();
       
+      if(log.isInfoEnabled()) {
+        log.info("Broker URL: {}", brokerUrl);
+        log.info("Queue name: {}", transportName);
+        log.info("User name: {}", username);
+        log.info("Password: ************");
+      }
+
       cores = Runtime.getRuntime().availableProcessors();
       log.trace("Calling start monitor");    
       startMonitor();
@@ -125,7 +134,20 @@ public class MessageHandler {
       }
     }
     String retryThreshold = PropertyUtil.getProperty(REQUEST_RETRY_THRESHOLD);
+    if(retryThreshold == null || retryThreshold.isEmpty()) {
+      log.warn("Broker retry threshold was not supplied - defaulting to 3");
+    }
     requestRetryThreshold = retryThreshold == null ? 3 : Integer.parseInt(retryThreshold);
+  }
+
+  void validateConfiguration() {
+    if(isNullOrEmpty(brokerUrl) || isNullOrEmpty(transportName) || isNullOrEmpty(username) || isNullOrEmpty(password)) {
+      throw new IllegalArgumentException(MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY);
+    }
+  }
+
+  boolean isNullOrEmpty(String value) {
+    return value == null || value.isEmpty();
   }
 
   private void startMonitor() {
