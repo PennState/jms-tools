@@ -21,8 +21,8 @@ import lombok.Getter;
 import lombok.Setter;
 import lombok.extern.slf4j.Slf4j;
 
-@Slf4j
 @Data
+@Slf4j
 public class MessageHandler {
 
   public static final int MIN_THRESHOLD = 3;
@@ -35,6 +35,8 @@ public class MessageHandler {
   public static final String REQUEST_RETRY_THRESHOLD = "broker.retry.threshold";
   public static final String ERROR_TRANSPORT_NAME_PROP_NAME = "error.transport.name";
   public static final String ERROR_TRANSPORT_TYPE_PROP_NAME = "error.transport.type";
+
+  public static final String MESSAGE_QUEUE_OR_TOPIC_ONLY = "If provided, the error transport type parameter must be set to either QUEUE or TOPIC";
   
   @Getter(value=AccessLevel.NONE)
   @Setter(value=AccessLevel.NONE)
@@ -58,7 +60,7 @@ public class MessageHandler {
   String errorTransportName;
   String username;
   String password;
-  TransportType errorTransportType;  
+  TransportType errorTransportType = TransportType.QUEUE;
   int requestRetryThreshold;
   
   int messageThreshold = 10;
@@ -70,20 +72,19 @@ public class MessageHandler {
   }
 
   public void init(){
-    if(loadFromProperties){
-      brokerUrl = PropertyUtil.getProperty(BROKER_URL_PROP_NAME);
-      transportName = PropertyUtil.getProperty(TRANSPORT_NAME_PROP_NAME);
-      errorTransportName = PropertyUtil.getProperty(ERROR_TRANSPORT_NAME_PROP_NAME);
-      username = PropertyUtil.getProperty(BROKER_USERNAME_PROP_NAME);
-      password = PropertyUtil.getProperty(BROKER_PASSWORD_PROP_NAME);
-      errorTransportType = TransportType.valueOf(PropertyUtil.getProperty(ERROR_TRANSPORT_TYPE_PROP_NAME));
-      String retryThreshold = PropertyUtil.getProperty(REQUEST_RETRY_THRESHOLD);
-      requestRetryThreshold = retryThreshold == null ? 3 : Integer.parseInt(retryThreshold);
-    }    
-    
-    cores = Runtime.getRuntime().availableProcessors();
-    log.trace("Calling start monitor");    
-    startMonitor();
+    log.trace("init()");
+
+    try {
+      if(loadFromProperties){
+        parseConfigurationFromProperties();
+      }    
+      
+      cores = Runtime.getRuntime().availableProcessors();
+      log.trace("Calling start monitor");    
+      startMonitor();
+    } catch (IllegalArgumentException e) {
+      log.error(e.getMessage());
+    }
   }
   
   public void setMessageThreshold(int threshold) throws IllegalStateException {
@@ -106,6 +107,25 @@ public class MessageHandler {
     for (MessageProcessor mp : handlerList) {
       mp.terminate();
     }
+  }
+
+  void parseConfigurationFromProperties() {
+    brokerUrl = PropertyUtil.getProperty(BROKER_URL_PROP_NAME);
+    transportName = PropertyUtil.getProperty(TRANSPORT_NAME_PROP_NAME);
+    errorTransportName = PropertyUtil.getProperty(ERROR_TRANSPORT_NAME_PROP_NAME);
+    username = PropertyUtil.getProperty(BROKER_USERNAME_PROP_NAME);
+    password = PropertyUtil.getProperty(BROKER_PASSWORD_PROP_NAME);
+    if(errorTransportName != null && !errorTransportName.isEmpty()) {
+      try {
+        errorTransportType = TransportType.valueOf(PropertyUtil.getProperty(ERROR_TRANSPORT_TYPE_PROP_NAME));
+      } catch (NullPointerException e) {
+        errorTransportType = TransportType.QUEUE;
+      } catch (IllegalArgumentException e) {
+        throw new IllegalArgumentException(MESSAGE_QUEUE_OR_TOPIC_ONLY);
+      }
+    }
+    String retryThreshold = PropertyUtil.getProperty(REQUEST_RETRY_THRESHOLD);
+    requestRetryThreshold = retryThreshold == null ? 3 : Integer.parseInt(retryThreshold);
   }
 
   private void startMonitor() {
