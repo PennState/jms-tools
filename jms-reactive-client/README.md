@@ -19,3 +19,10 @@ upper-case the string to determine the effective environment variable name
 | broker.retry.threshold |                               | True     | 3       |
 | error.transport.name   |                               | False    |         |
 | error.transport.type   |                               | False    | QUEUE   |
+
+## Logging
+
+The JMS Reactive Client specifies only ``slf4j-api`` as a dependency.  The
+application built using this library should add and implementation if output
+logging is desired.  Test logging is configured so that executing tests can
+output to the console (Note that this is not encouraged by the JUnit 5 API).

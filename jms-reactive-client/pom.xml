@@ -25,7 +25,9 @@
     <junit-minor.version>2.0</junit-minor.version>
     <junit-jupiter.version>5.${junit-minor.version}${junit-qualifier}</junit-jupiter.version>
     <junit-platform.version>1.${junit-minor.version}${junit-qualifier}</junit-platform.version>
+    <logback.version>1.2.3</logback.version>
     <lombok.version>1.16.18</lombok.version>
+    <slf4j.version>1.7.25</slf4j.version>
   </properties>
 
   <distributionManagement>
@@ -60,6 +62,13 @@
       <version>${activemq.version}</version>
     </dependency>
     <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
+      <version>${slf4j.version}</version>
+    </dependency>
+
+    <!-- Test scoped -->
+    <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
       <scope>test</scope>
@@ -72,6 +81,32 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
+      <scope>test</scope>
+    </dependency>
+
+    <!-- Test logging -->
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jcl-over-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>log4j-over-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>jul-to-slf4j</artifactId>
+      <version>${slf4j.version}</version>
+      <scope>test</scope>
+    </dependency>
+    <dependency>
+      <groupId>ch.qos.logback</groupId>
+      <artifactId>logback-classic</artifactId>
+      <version>${logback.version}</version>
       <scope>test</scope>
     </dependency>
   </dependencies>
