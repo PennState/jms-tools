@@ -173,6 +173,7 @@ public abstract class MessageProcessor {
       try {
         if (e instanceof UnableToProcessMessageException) {
           msg.setStringProperty("shortDescription", ((UnableToProcessMessageException) e).getShortDescription());
+          msg.setStringProperty("sourceSystem", ((UnableToProcessMessageException) e).getSourceSystem());
         } else {
           // Try to grab something for the short Message
           String shortMessage = e.getMessage();

@@ -18,6 +18,10 @@ public class UnableToProcessMessageException extends Exception {
   @Setter
   String shortDescription;
   
+  @Getter
+  @Setter
+  String sourceSystem;
+  
   private static final long serialVersionUID = 1497512404523880592L;
 
   public UnableToProcessMessageException(String why) {
