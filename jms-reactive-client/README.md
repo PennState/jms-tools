@@ -23,6 +23,6 @@ upper-case the string to determine the effective environment variable name
 ## Logging
 
 The JMS Reactive Client specifies only ``slf4j-api`` as a dependency.  The
-application built using this library should add and implementation if output
+application built using this library should add an implementation if output
 logging is desired.  Test logging is configured so that executing tests can
 output to the console (Note that this is not encouraged by the JUnit 5 API).
