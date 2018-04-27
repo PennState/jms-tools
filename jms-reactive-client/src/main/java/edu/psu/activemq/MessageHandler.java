@@ -40,6 +40,7 @@ public class MessageHandler {
       " parameter must be set to either QUEUE or TOPIC";
   public static final String MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY = BROKER_URL_PROP_NAME + ", " + TRANSPORT_NAME_PROP_NAME + ", " +
       ", " + BROKER_USERNAME_PROP_NAME + " and " + BROKER_PASSWORD_PROP_NAME + " are required configuration properties with no defaults";
+  public static final String MESSAGE_RETRY_THRESHOLD_MUST_BE_AN_INTEGER = REQUEST_RETRY_THRESHOLD + " must be an integer";
   
   @Getter(value=AccessLevel.NONE)
   @Setter(value=AccessLevel.NONE)
@@ -135,11 +136,18 @@ public class MessageHandler {
         throw new IllegalArgumentException(MESSAGE_QUEUE_OR_TOPIC_ONLY);
       }
     }
+
     String retryThreshold = PropertyUtil.getProperty(REQUEST_RETRY_THRESHOLD);
-    if(retryThreshold == null || retryThreshold.isEmpty()) {
+    if(retryThreshold != null && !retryThreshold.isEmpty()) {
+      try {
+        requestRetryThreshold = Integer.parseInt(retryThreshold);
+      } catch(NumberFormatException e) {
+        throw new IllegalArgumentException(MESSAGE_RETRY_THRESHOLD_MUST_BE_AN_INTEGER);
+      }
+    } else {
+      requestRetryThreshold = 3;
       log.warn("Broker retry threshold was not supplied - defaulting to 3");
     }
-    requestRetryThreshold = retryThreshold == null ? 3 : Integer.parseInt(retryThreshold);
   }
 
   void validateConfiguration() {
