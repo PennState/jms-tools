@@ -36,8 +36,10 @@ public class MessageHandler {
   public static final String ERROR_TRANSPORT_NAME_PROP_NAME = "error.transport.name";
   public static final String ERROR_TRANSPORT_TYPE_PROP_NAME = "error.transport.type";
 
-  public static final String MESSAGE_QUEUE_OR_TOPIC_ONLY = "If provided, the error transport type parameter must be set to either QUEUE or TOPIC";
-  public static final String MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY = "Broker url, queue name, username and password are required configuration properties with no defaults";
+  public static final String MESSAGE_QUEUE_OR_TOPIC_ONLY = "If provided, the " + ERROR_TRANSPORT_TYPE_PROP_NAME +
+      " parameter must be set to either QUEUE or TOPIC";
+  public static final String MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY = BROKER_URL_PROP_NAME + ", " + TRANSPORT_NAME_PROP_NAME + ", " +
+      ", " + BROKER_USERNAME_PROP_NAME + " and " + BROKER_PASSWORD_PROP_NAME + " are required configuration properties with no defaults";
   
   @Getter(value=AccessLevel.NONE)
   @Setter(value=AccessLevel.NONE)
