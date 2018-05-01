@@ -1,11 +1,10 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <groupId>edu.psu.swe.libraries</groupId>
   <artifactId>jms-tools</artifactId>
-  <version>0.1-SNAPSHOT</version>
+  <version>0.2-SNAPSHOT</version>
   <packaging>pom</packaging>
   <url>${project.parent}/libraries/jms-utils</url>
   
@@ -68,7 +67,7 @@
 
     <activemq.version>5.15.3</activemq.version>
     <assertj.version>3.9.1</assertj.version>
-    <junit-qualifier></junit-qualifier>
+    <junit-qualifier />
     <junit-minor.version>2.0</junit-minor.version>
     <junit-jupiter.version>5.${junit-minor.version}${junit-qualifier}</junit-jupiter.version>
     <junit-platform.version>1.${junit-minor.version}${junit-qualifier}</junit-platform.version>
