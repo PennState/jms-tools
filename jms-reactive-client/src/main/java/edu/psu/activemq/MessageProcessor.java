@@ -10,6 +10,7 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
+import javax.jms.TextMessage;
 
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQMessageConsumer;
@@ -19,6 +20,14 @@ import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+
+import edu.psu.activemq.data.ErrorMessage;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -49,11 +58,17 @@ public abstract class MessageProcessor {
   ActiveMQMessageConsumer consumer = null;
   ActiveMQMessageProducer producer = null;
   MessageProducer errorProducer = null;
+  Session errorSession;
+  
+  ObjectMapper objectMapper = new ObjectMapper();
 
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
 
   public MessageProcessor() {
-
+    AnnotationIntrospector jaxbIntrospector = new JaxbAnnotationIntrospector(objectMapper.getTypeFactory());
+    AnnotationIntrospector jacksonIntrospector = new JacksonAnnotationIntrospector();
+    AnnotationIntrospector pair = new AnnotationIntrospectorPair(jacksonIntrospector, jaxbIntrospector);
+    objectMapper.setAnnotationIntrospector(pair);
   }
 
   public void terminate() {
@@ -96,7 +111,7 @@ public abstract class MessageProcessor {
           try {
             errorConnection = MessageHandler.buildActivemqConnection(brokerUrl, username, password);
             errorConnection.start();
-            Session errorSession = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            errorSession = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
             Destination errorDestination = null;
             if (TransportType.TOPIC.equals(errorTransportType)) {
@@ -171,26 +186,34 @@ public abstract class MessageProcessor {
       ActiveMQMessage msg = (ActiveMQMessage) message;
       msg.setReadOnlyProperties(false);
       try {
+        ErrorMessage em = new ErrorMessage();
+        
         if (e instanceof UnableToProcessMessageException) {
-          msg.setStringProperty("shortDescription", ((UnableToProcessMessageException) e).getShortDescription());
-          msg.setStringProperty("sourceSystem", ((UnableToProcessMessageException) e).getSourceSystem());
+          em.setShortDescription(((UnableToProcessMessageException) e).getShortDescription());
+          em.setSourceSystem(((UnableToProcessMessageException) e).getSourceSystem());
         } else {
           // Try to grab something for the short Message
           String shortMessage = e.getMessage();
           int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
-          msg.setStringProperty("shortDescription", e.getMessage()
-                                                     .substring(0, shortMessageLength));
+          em.setShortDescription(e.getMessage().substring(0, shortMessageLength));
         }
 
-        msg.setStringProperty("error", e.getMessage());
-        msg.setStringProperty("errorStackTrace", getStackTrace(e));
-        errorProducer.send(msg);
-        consumer.acknowledge();
+        em.setDescription(e.getMessage());
+        em.setStack(getStackTrace(e));
+        try {
+          TextMessage tm = errorSession.createTextMessage(objectMapper.writeValueAsString(em));
+          errorProducer.send(tm);
+          consumer.acknowledge();
+        } catch (JsonProcessingException e1) {
+          log.error("Unable to send message on error queue: " + em.toString());
+        }
       } catch (JMSException e1) {
-        // TODO Auto-generated catch block
-        e1.printStackTrace();
+        if (e instanceof UnableToProcessMessageException) {
+          UnableToProcessMessageException up = (UnableToProcessMessageException)e;
+          log.error("Unable to send message on error queue: {} {} {}", up.getShortDescription(), up.getSourceSystem(), up.getMessage());
+        }
+        log.error("Unable to send message on error queue: " + e.getMessage());
       }
-
     } else {
       try {
         consumer.rollback();
