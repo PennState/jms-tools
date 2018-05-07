@@ -150,10 +150,16 @@ public abstract class MessageProcessor {
 
                 producer.send(msg);
               } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
-                continue;
+                log.info("Dropping message {}", message.getJMSMessageID());
               } else {
                 processFailureMessage(message, upme);
               }
+              
+              consumer.acknowledge();
+            }
+            catch(Exception e) {
+              processFailureMessage(message, e);
+              consumer.acknowledge();
             }
           }
         } catch (Exception e) {
