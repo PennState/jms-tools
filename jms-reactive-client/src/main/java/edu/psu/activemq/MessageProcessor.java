@@ -200,8 +200,13 @@ public abstract class MessageProcessor {
         } else {
           // Try to grab something for the short Message
           String shortMessage = e.getMessage();
-          int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
-          em.setShortDescription(e.getMessage().substring(0, shortMessageLength));
+          if(shortMessage != null) {
+            int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
+            em.setShortDescription(e.getMessage().substring(0, shortMessageLength));
+          }
+          else {
+            em.setShortDescription("Error: " + e.getClass().getName());
+          }
         }
 
         em.setDescription(e.getMessage());
