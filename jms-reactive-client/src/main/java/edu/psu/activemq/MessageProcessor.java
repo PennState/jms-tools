@@ -19,6 +19,7 @@ import org.apache.activemq.RedeliveryPolicy;
 import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
+import org.slf4j.MDC;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.AnnotationIntrospector;
@@ -40,7 +41,8 @@ import lombok.extern.slf4j.Slf4j;
 public abstract class MessageProcessor {
 
   private static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
-  
+  private static final String UNIQUE_ID_MDC_KEY = "uniqueId";
+
   @Getter(value = AccessLevel.NONE)
   @Setter(value = AccessLevel.NONE)
   boolean process = true;
@@ -135,8 +137,27 @@ public abstract class MessageProcessor {
           while (process) {
             message = consumer.receive();
             try {
-              handleMessage(message);
-              consumer.acknowledge();
+              
+              //set unique id for logging
+              try {
+                MDC.put(UNIQUE_ID_MDC_KEY, message.getJMSMessageID());
+              } catch (IllegalArgumentException | JMSException e1) {
+                log.error("Error setting MDC unique id", e1);
+              }
+              
+              try {
+                handleMessage(message);
+                consumer.acknowledge();
+              }
+              //remove unique id for logging
+              finally {
+                try {
+                  MDC.remove(UNIQUE_ID_MDC_KEY);
+                } catch (IllegalArgumentException e1) {
+                  log.error("Error remvoing MDC unique id");
+                }
+              }
+              
             } catch (UnableToProcessMessageException upme) {
               if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
                 ActiveMQMessage msg = (ActiveMQMessage) message;
