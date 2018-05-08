@@ -35,6 +35,7 @@ public class MessageHandler {
   public static final String REQUEST_RETRY_THRESHOLD = "broker.retry.threshold";
   public static final String ERROR_TRANSPORT_NAME_PROP_NAME = "error.transport.name";
   public static final String ERROR_TRANSPORT_TYPE_PROP_NAME = "error.transport.type";
+  public static final String ERROR_MESSAGE_CONVERT = "error.message.convert";
 
   public static final String MESSAGE_QUEUE_OR_TOPIC_ONLY = "If provided, the " + ERROR_TRANSPORT_TYPE_PROP_NAME +
       " parameter must be set to either QUEUE or TOPIC";
@@ -66,6 +67,7 @@ public class MessageHandler {
   String password;
   TransportType errorTransportType = TransportType.QUEUE;
   int requestRetryThreshold;
+  boolean convertErrorMessage = false;
   
   int messageThreshold = 10;
   int recheckPeriod = 3000;
@@ -147,6 +149,11 @@ public class MessageHandler {
     } else {
       requestRetryThreshold = 3;
       log.warn("Broker retry threshold was not supplied - defaulting to 3");
+    }
+    
+    String errorMessageConvertString = PropertyUtil.getProperty(ERROR_MESSAGE_CONVERT);
+    if(errorMessageConvertString != null && !errorMessageConvertString.isEmpty()) {
+      convertErrorMessage = Boolean.parseBoolean(errorMessageConvertString);      
     }
   }
 
@@ -250,6 +257,7 @@ public class MessageHandler {
     mp.setUsername(username);
     mp.setPassword(password);
     mp.setRequestRetryThreshold(requestRetryThreshold);
+    mp.setErrorMessageConvert(convertErrorMessage);
     
     mp.initialize();
     return mp;

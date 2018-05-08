@@ -58,6 +58,7 @@ public abstract class MessageProcessor {
   String username;
   String password;
   int requestRetryThreshold;
+  boolean errorMessageConvert = false;
 
   ActiveMQMessageConsumer consumer = null;
   ActiveMQMessageProducer producer = null;
@@ -218,32 +219,41 @@ public abstract class MessageProcessor {
       ActiveMQMessage msg = (ActiveMQMessage) message;
       msg.setReadOnlyProperties(false);
       try {
-        ErrorMessage em = new ErrorMessage();
+        //convert to an error message object
+        if (errorMessageConvert) {
+          ErrorMessage em = new ErrorMessage();
 
-        if (e instanceof UnableToProcessMessageException) {
-          em.setShortDescription(((UnableToProcessMessageException) e).getShortDescription());
-          em.setSourceSystem(((UnableToProcessMessageException) e).getSourceSystem());
-        } else {
-          // Try to grab something for the short Message
-          String shortMessage = e.getMessage();
-          if (shortMessage != null) {
-            int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
-            em.setShortDescription(e.getMessage()
-                                    .substring(0, shortMessageLength));
+          if (e instanceof UnableToProcessMessageException) {
+            em.setShortDescription(((UnableToProcessMessageException) e).getShortDescription());
+            em.setSourceSystem(((UnableToProcessMessageException) e).getSourceSystem());
           } else {
-            em.setShortDescription("Error: " + e.getClass()
-                                                .getName());
+            // Try to grab something for the short Message
+            String shortMessage = e.getMessage();
+            if (shortMessage != null) {
+              int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
+              em.setShortDescription(e.getMessage()
+                                      .substring(0, shortMessageLength));
+            } else {
+              em.setShortDescription("Error: " + e.getClass()
+                                                  .getName());
+            }
+          }
+
+          em.setDescription(e.getMessage());
+          em.setStack(getStackTrace(e));
+          try {
+            TextMessage tm = errorSession.createTextMessage(objectMapper.writeValueAsString(em));
+            errorProducer.send(tm);
+            consumer.acknowledge();
+          } catch (JsonProcessingException e1) {
+            log.error("Unable to send message on error queue: " + em.toString());
           }
         }
-
-        em.setDescription(e.getMessage());
-        em.setStack(getStackTrace(e));
-        try {
-          TextMessage tm = errorSession.createTextMessage(objectMapper.writeValueAsString(em));
-          errorProducer.send(tm);
-          consumer.acknowledge();
-        } catch (JsonProcessingException e1) {
-          log.error("Unable to send message on error queue: " + em.toString());
+        //send original message with error headers
+        else {
+          msg.setStringProperty("error", e.getMessage());
+          msg.setStringProperty("errorStackTrace", getStackTrace(e));
+          errorProducer.send(msg);
         }
       } catch (JMSException e1) {
         if (e instanceof UnableToProcessMessageException) {
