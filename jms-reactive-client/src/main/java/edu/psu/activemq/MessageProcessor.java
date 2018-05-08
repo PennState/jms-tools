@@ -222,7 +222,10 @@ public abstract class MessageProcessor {
         em.setDescription(e.getMessage());
         em.setStack(getStackTrace(e));
         try {
-          TextMessage tm = errorSession.createTextMessage(objectMapper.writeValueAsString(em));
+          String stringMessage = objectMapper.writeValueAsString(em);
+          TextMessage tm = errorSession.createTextMessage(stringMessage);
+          tm.setStringProperty(org.apache.activemq.artemis.api.core.Message.HDR_DUPLICATE_DETECTION_ID.toString(),  
+                               Long.toString(stringMessage.hashCode()));
           errorProducer.send(tm);
           consumer.acknowledge();
         } catch (JsonProcessingException e1) {
