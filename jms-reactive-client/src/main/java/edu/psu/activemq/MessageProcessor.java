@@ -39,6 +39,8 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 public abstract class MessageProcessor {
 
+  private static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
+  
   @Getter(value = AccessLevel.NONE)
   @Setter(value = AccessLevel.NONE)
   boolean process = true;
@@ -141,14 +143,22 @@ public abstract class MessageProcessor {
                 msg.setReadOnlyProperties(false);
                 msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
 
-                int retryCount = message.getIntProperty("JMSXDeliveryCount");
+                log.debug("Getting retry count");
+                int retryCount = 0;
+                String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
+                if(retryCountString != null) {
+                  retryCount = Integer.parseInt(retryCountString);
+                }                
+                log.debug("Current count: {}, Threshold: {}", String.valueOf(retryCount), String.valueOf(requestRetryThreshold));                
                 if (retryCount >= requestRetryThreshold) {
+                  log.debug("Retry count greater than threshold, process failure message");
                   processFailureMessage(message, upme);
                 } else {
-                  msg.setIntProperty("JMSXDeliveryCount", ++retryCount);
+                  log.debug("Retry count less than threshold, increment count");
+                  msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
+                  //send message back to queue with greater retry count
+                  producer.send(msg);
                 }
-
-                producer.send(msg);
               } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
                 log.info("Dropping message {}", message.getJMSMessageID());
               } else {
