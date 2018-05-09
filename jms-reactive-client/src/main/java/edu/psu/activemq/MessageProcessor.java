@@ -10,6 +10,7 @@ import javax.jms.Message;
 import javax.jms.MessageProducer;
 import javax.jms.Queue;
 import javax.jms.Session;
+import javax.jms.TextMessage;
 
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQMessageConsumer;
@@ -18,7 +19,16 @@ import org.apache.activemq.RedeliveryPolicy;
 import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
+import org.slf4j.MDC;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+
+import edu.psu.activemq.data.ErrorMessage;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -29,6 +39,9 @@ import lombok.extern.slf4j.Slf4j;
 @Slf4j
 @Data
 public abstract class MessageProcessor {
+
+  private static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
+  private static final String UNIQUE_ID_MDC_KEY = "uniqueId";
 
   @Getter(value = AccessLevel.NONE)
   @Setter(value = AccessLevel.NONE)
@@ -45,15 +58,22 @@ public abstract class MessageProcessor {
   String username;
   String password;
   int requestRetryThreshold;
+  boolean errorMessageConvert = false;
 
   ActiveMQMessageConsumer consumer = null;
   ActiveMQMessageProducer producer = null;
   MessageProducer errorProducer = null;
+  Session errorSession;
+
+  ObjectMapper objectMapper = new ObjectMapper();
 
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
 
   public MessageProcessor() {
-
+    AnnotationIntrospector jaxbIntrospector = new JaxbAnnotationIntrospector(objectMapper.getTypeFactory());
+    AnnotationIntrospector jacksonIntrospector = new JacksonAnnotationIntrospector();
+    AnnotationIntrospector pair = new AnnotationIntrospectorPair(jacksonIntrospector, jaxbIntrospector);
+    objectMapper.setAnnotationIntrospector(pair);
   }
 
   public void terminate() {
@@ -96,7 +116,7 @@ public abstract class MessageProcessor {
           try {
             errorConnection = MessageHandler.buildActivemqConnection(brokerUrl, username, password);
             errorConnection.start();
-            Session errorSession = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+            errorSession = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
             Destination errorDestination = null;
             if (TransportType.TOPIC.equals(errorTransportType)) {
@@ -118,6 +138,14 @@ public abstract class MessageProcessor {
           while (process) {
             message = consumer.receive();
             try {
+
+              // set unique id for logging
+              try {
+                MDC.put(UNIQUE_ID_MDC_KEY, message.getJMSMessageID());
+              } catch (IllegalArgumentException | JMSException e1) {
+                log.error("Error setting MDC unique id", e1);
+              }
+
               handleMessage(message);
               consumer.acknowledge();
             } catch (UnableToProcessMessageException upme) {
@@ -126,18 +154,38 @@ public abstract class MessageProcessor {
                 msg.setReadOnlyProperties(false);
                 msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
 
-                int retryCount = message.getIntProperty("JMSXDeliveryCount");
+                log.debug("Getting retry count");
+                int retryCount = 0;
+                String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
+                if (retryCountString != null) {
+                  retryCount = Integer.parseInt(retryCountString);
+                }
+                log.debug("Current count: {}, Threshold: {}", String.valueOf(retryCount), String.valueOf(requestRetryThreshold));
                 if (retryCount >= requestRetryThreshold) {
+                  log.info("Retry count greater than threshold, process failure message");
                   processFailureMessage(message, upme);
                 } else {
-                  msg.setIntProperty("JMSXDeliveryCount", ++retryCount);
+                  log.info("Retry count less than threshold, increment count and requeue");
+                  msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
+                  // send message back to queue with greater retry count
+                  producer.send(msg);
                 }
-
-                producer.send(msg);
               } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
-                continue;
+                log.info("Dropping message {}", message.getJMSMessageID());
               } else {
                 processFailureMessage(message, upme);
+              }
+
+              consumer.acknowledge();
+            } catch (Exception e) {
+              processFailureMessage(message, e);
+              consumer.acknowledge();
+            } finally {
+              // remove unique id for logging
+              try {
+                MDC.remove(UNIQUE_ID_MDC_KEY);
+              } catch (IllegalArgumentException e1) {
+                log.error("Error remvoing MDC unique id");
               }
             }
           }
@@ -171,26 +219,49 @@ public abstract class MessageProcessor {
       ActiveMQMessage msg = (ActiveMQMessage) message;
       msg.setReadOnlyProperties(false);
       try {
-        if (e instanceof UnableToProcessMessageException) {
-          msg.setStringProperty("shortDescription", ((UnableToProcessMessageException) e).getShortDescription());
-          msg.setStringProperty("sourceSystem", ((UnableToProcessMessageException) e).getSourceSystem());
-        } else {
-          // Try to grab something for the short Message
-          String shortMessage = e.getMessage();
-          int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
-          msg.setStringProperty("shortDescription", e.getMessage()
-                                                     .substring(0, shortMessageLength));
+        //convert to an error message object
+        if (errorMessageConvert) {
+          ErrorMessage em = new ErrorMessage();
+
+          if (e instanceof UnableToProcessMessageException) {
+            em.setShortDescription(((UnableToProcessMessageException) e).getShortDescription());
+            em.setSourceSystem(((UnableToProcessMessageException) e).getSourceSystem());
+          } else {
+            // Try to grab something for the short Message
+            String shortMessage = e.getMessage();
+            if (shortMessage != null) {
+              int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
+              em.setShortDescription(e.getMessage()
+                                      .substring(0, shortMessageLength));
+            } else {
+              em.setShortDescription("Error: " + e.getClass()
+                                                  .getName());
+            }
+          }
+
+          em.setDescription(e.getMessage());
+          em.setStack(getStackTrace(e));
+          try {
+            TextMessage tm = errorSession.createTextMessage(objectMapper.writeValueAsString(em));
+            errorProducer.send(tm);
+            consumer.acknowledge();
+          } catch (JsonProcessingException e1) {
+            log.error("Unable to send message on error queue: " + em.toString());
+          }
         }
-
-        msg.setStringProperty("error", e.getMessage());
-        msg.setStringProperty("errorStackTrace", getStackTrace(e));
-        errorProducer.send(msg);
-        consumer.acknowledge();
+        //send original message with error headers
+        else {
+          msg.setStringProperty("error", e.getMessage());
+          msg.setStringProperty("errorStackTrace", getStackTrace(e));
+          errorProducer.send(msg);
+        }
       } catch (JMSException e1) {
-        // TODO Auto-generated catch block
-        e1.printStackTrace();
+        if (e instanceof UnableToProcessMessageException) {
+          UnableToProcessMessageException up = (UnableToProcessMessageException) e;
+          log.error("Unable to send message on error queue: {} {} {}", up.getShortDescription(), up.getSourceSystem(), up.getMessage());
+        }
+        log.error("Unable to send message on error queue: " + e.getMessage());
       }
-
     } else {
       try {
         consumer.rollback();
