@@ -14,6 +14,7 @@ import javax.jms.Session;
 
 import org.apache.activemq.ActiveMQConnectionFactory;
 
+import edu.psu.activemq.exception.MessageHandlerException;
 import edu.psu.activemq.util.PropertyUtil;
 import lombok.AccessLevel;
 import lombok.Data;
@@ -68,14 +69,15 @@ public class MessageHandler {
   boolean convertErrorMessage = false;
 
   int messageThreshold = 10;
-  int recheckPeriod = 3000;
+  int recheckPeriod = 6000;
+  int maxProcessorFailures = 30; 
   int cores;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     constructor = clazz.getConstructor();
   }
 
-  public void init() {
+  public void init() throws MessageHandlerException {
     log.trace("init()");
 
     try {
@@ -172,7 +174,7 @@ public class MessageHandler {
     return value == null || value.isEmpty();
   }
 
-  private void startMonitor() {
+  private void startMonitor() throws MessageHandlerException {
     log.info("Starting the monitor");
 
     try {
@@ -192,6 +194,8 @@ public class MessageHandler {
         throw new RuntimeException("Boom");
       }
 
+      int failedProcessorBuilds = 0;
+
       while (true) {
         @SuppressWarnings("unchecked")
         int msgCount = Collections.list(browser.getEnumeration())
@@ -199,11 +203,23 @@ public class MessageHandler {
         log.debug("Current Queue Size: " + (msgCount));
         try {
           log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
-          if (msgCount > messageThreshold) {
+          if (msgCount > messageThreshold || handlerList.isEmpty()) {
             if (handlerList.size() < cores) {
-              log.trace("Constructing a new Message Processor");
-              handlerList.add(buildNewMessageProcessor());
-              log.trace("############# Now " + handlerList.size() + " processors");
+              try {
+                log.trace("Constructing a new Message Processor");
+                handlerList.add(buildNewMessageProcessor());
+                failedProcessorBuilds = 0;
+                log.trace("############# Now " + handlerList.size() + " processors");
+              } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
+                log.error("Error building new message processor: " + e1.getMessage(), e1);
+                failedProcessorBuilds++;
+                //if exceeded max failures and no active processors, exit handler
+                if(failedProcessorBuilds >= maxProcessorFailures && handlerList.isEmpty()) {
+                  String msg = "Failed processor count: " + failedProcessorBuilds + " exceeded max failures: " + maxProcessorFailures + " and handler list empty";
+                  log.error(msg);
+                  throw new MessageHandlerException(msg);
+                }
+              }
             }
           } else if (handlerList.size() > 1) {
             log.trace("Removing a Message Processor");
@@ -220,17 +236,8 @@ public class MessageHandler {
             }
           }
 
-          if (handlerList.isEmpty()) {
-            log.trace("Seeding the processing pool with a single instance");
-            try {
-              handlerList.add(buildNewMessageProcessor());
-            } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
-              log.error("Error building new message processor: " + e1.getMessage(), e1);
-            }
-          }
-
           Thread.sleep(recheckPeriod);
-        } catch (InterruptedException | InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e) {
+        } catch (InterruptedException | IllegalArgumentException e) {
           log.error("Error in message handler", e);
         }
       }
