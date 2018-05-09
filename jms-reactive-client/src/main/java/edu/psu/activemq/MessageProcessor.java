@@ -84,127 +84,143 @@ public abstract class MessageProcessor {
     log.info("Initializing message processor...");
 
     Thread t = new Thread(new Runnable() {
-
       public void run() {
 
         ActiveMQConnection connection = null;
-
-        try {
-          connection = (ActiveMQConnection) MessageHandler.buildActivemqConnection(brokerUrl, username, password);
-
-          RedeliveryPolicy rd = new RedeliveryPolicy();
-          rd.setMaximumRedeliveries(2);
-          connection.getRedeliveryPolicyMap()
-                    .put(new ActiveMQQueue(transportName), rd);
-
-          connection.start();
-          Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
-
-          Queue destination = session.createQueue(transportName);
-          consumer = (ActiveMQMessageConsumer) session.createConsumer(destination);
-          // Used for re-queuing messages at the users requests
-          producer = (ActiveMQMessageProducer) session.createProducer(destination);
-
-        } catch (JMSException e) {
-          log.info("Error creating message consumer", e);
-          stopped = true;
-          throw new RuntimeException("Failed to initialize processing queue");
-        }
-
         Connection errorConnection = null;
-        if (errorTransportName != null) {
-          try {
-            errorConnection = MessageHandler.buildActivemqConnection(brokerUrl, username, password);
-            errorConnection.start();
-            errorSession = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-
-            Destination errorDestination = null;
-            if (TransportType.TOPIC.equals(errorTransportType)) {
-              errorDestination = errorSession.createTopic(errorTransportName);
-            } else {
-              errorDestination = errorSession.createQueue(errorTransportName);
-            }
-
-            errorProducer = errorSession.createProducer(errorDestination);
-          } catch (JMSException e) {
-            log.error("Error creating error producer", e);
-            stopped = true;
-            throw new RuntimeException("Failed to initialize the error endpoint");
-          }
-        }
 
         try {
-          Message message = null;
-          while (process) {
-            message = consumer.receive();
+          try {
+            connection = (ActiveMQConnection) MessageHandler.buildActivemqConnection(brokerUrl, username, password);
+
+            RedeliveryPolicy rd = new RedeliveryPolicy();
+            rd.setMaximumRedeliveries(2);
+            connection.getRedeliveryPolicyMap()
+                      .put(new ActiveMQQueue(transportName), rd);
+
+            connection.start();
+            Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
+
+            Queue destination = session.createQueue(transportName);
+            consumer = (ActiveMQMessageConsumer) session.createConsumer(destination);
+            // Used for re-queuing messages at the users requests
+            producer = (ActiveMQMessageProducer) session.createProducer(destination);
+
+          } catch (JMSException e) {
+            log.info("Error creating message consumer", e);
+            stopped = true;
+            throw new RuntimeException("Failed to initialize processing queue");
+          }
+
+          if (errorTransportName != null) {
             try {
+              errorConnection = MessageHandler.buildActivemqConnection(brokerUrl, username, password);
+              errorConnection.start();
+              errorSession = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
 
-              // set unique id for logging
-              try {
-                MDC.put(UNIQUE_ID_MDC_KEY, message.getJMSMessageID());
-              } catch (IllegalArgumentException | JMSException e1) {
-                log.error("Error setting MDC unique id", e1);
-              }
-
-              handleMessage(message);
-              consumer.acknowledge();
-            } catch (UnableToProcessMessageException upme) {
-              if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
-                ActiveMQMessage msg = (ActiveMQMessage) message;
-                msg.setReadOnlyProperties(false);
-                msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
-
-                log.debug("Getting retry count");
-                int retryCount = 0;
-                String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
-                if (retryCountString != null) {
-                  retryCount = Integer.parseInt(retryCountString);
-                }
-                log.debug("Current count: {}, Threshold: {}", String.valueOf(retryCount), String.valueOf(requestRetryThreshold));
-                if (retryCount >= requestRetryThreshold) {
-                  log.info("Retry count greater than threshold, process failure message");
-                  processFailureMessage(message, upme);
-                } else {
-                  log.info("Retry count less than threshold, increment count and requeue");
-                  msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
-                  // send message back to queue with greater retry count
-                  producer.send(msg);
-                }
-              } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
-                log.info("Dropping message {}", message.getJMSMessageID());
+              Destination errorDestination = null;
+              if (TransportType.TOPIC.equals(errorTransportType)) {
+                errorDestination = errorSession.createTopic(errorTransportName);
               } else {
-                processFailureMessage(message, upme);
+                errorDestination = errorSession.createQueue(errorTransportName);
               }
 
-              consumer.acknowledge();
-            } catch (Exception e) {
-              processFailureMessage(message, e);
-              consumer.acknowledge();
-            } finally {
-              // remove unique id for logging
-              try {
-                MDC.remove(UNIQUE_ID_MDC_KEY);
-              } catch (IllegalArgumentException e1) {
-                log.error("Error remvoing MDC unique id");
-              }
+              errorProducer = errorSession.createProducer(errorDestination);
+            } catch (JMSException e) {
+              log.error("Error creating error producer", e);
+              stopped = true;
+              throw new RuntimeException("Failed to initialize the error endpoint");
             }
           }
-        } catch (Exception e) {
-          stopped = true;
-          log.error("Processor exception processing message.", e);
 
           try {
-            consumer.rollback();
-          } catch (JMSException e1) {
+            Message message = null;
+            while (process) {
+              message = consumer.receive();
+              try {
+
+                // set unique id for logging
+                try {
+                  MDC.put(UNIQUE_ID_MDC_KEY, message.getJMSMessageID());
+                } catch (IllegalArgumentException | JMSException e1) {
+                  log.error("Error setting MDC unique id", e1);
+                }
+
+                handleMessage(message);
+                consumer.acknowledge();
+              } catch (UnableToProcessMessageException upme) {
+                if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
+                  ActiveMQMessage msg = (ActiveMQMessage) message;
+                  msg.setReadOnlyProperties(false);
+                  msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
+
+                  log.debug("Getting retry count");
+                  int retryCount = 0;
+                  String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
+                  if (retryCountString != null) {
+                    retryCount = Integer.parseInt(retryCountString);
+                  }
+                  log.debug("Current count: {}, Threshold: {}", String.valueOf(retryCount), String.valueOf(requestRetryThreshold));
+                  if (retryCount >= requestRetryThreshold) {
+                    log.info("Retry count greater than threshold, process failure message");
+                    processFailureMessage(message, upme);
+                  } else {
+                    log.info("Retry count less than threshold, increment count and requeue");
+                    msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
+                    // send message back to queue with greater retry count
+                    producer.send(msg);
+                  }
+                } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
+                  log.info("Dropping message {}", message.getJMSMessageID());
+                } else {
+                  processFailureMessage(message, upme);
+                }
+
+                consumer.acknowledge();
+              } catch (Exception e) {
+                processFailureMessage(message, e);
+                consumer.acknowledge();
+              } finally {
+                // remove unique id for logging
+                try {
+                  MDC.remove(UNIQUE_ID_MDC_KEY);
+                } catch (IllegalArgumentException e1) {
+                  log.error("Error remvoing MDC unique id");
+                }
+              }
+            }
+            log.info("Stopping processor");
+          } catch (Exception e) {
+            stopped = true;
+            log.error("Processor exception processing message.", e);
+
+            try {
+              consumer.rollback();
+            } catch (JMSException e1) {
+            }
           }
         } finally {
           try {
             consumer.close();
-          } catch (JMSException e) {
+          } catch (Exception e) {
           }
+          //close connection
           try {
-            connection.close();
-          } catch (JMSException e) {
+            if (connection != null) {
+              log.info("Closing connection");
+              connection.close();
+            }
+          } catch (Exception e) {
+            log.warn("Error closing connection", e);
+          }
+          //close error connection
+          try {
+            if (errorConnection != null) {
+              log.info("Closing error connection");
+              errorConnection.close();
+            }
+          } catch (Exception e) {
+            log.warn("Error closing error connection", e);
           }
         }
       }
@@ -219,7 +235,7 @@ public abstract class MessageProcessor {
       ActiveMQMessage msg = (ActiveMQMessage) message;
       msg.setReadOnlyProperties(false);
       try {
-        //convert to an error message object
+        // convert to an error message object
         if (errorMessageConvert) {
           ErrorMessage em = new ErrorMessage();
 
@@ -249,7 +265,7 @@ public abstract class MessageProcessor {
             log.error("Unable to send message on error queue: " + em.toString());
           }
         }
-        //send original message with error headers
+        // send original message with error headers
         else {
           msg.setStringProperty("error", e.getMessage());
           msg.setStringProperty("errorStackTrace", getStackTrace(e));

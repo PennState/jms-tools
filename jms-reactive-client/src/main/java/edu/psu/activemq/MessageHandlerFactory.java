@@ -2,6 +2,8 @@ package edu.psu.activemq;
 
 import java.lang.reflect.InvocationTargetException;
 
+import edu.psu.activemq.exception.MessageHandlerException;
+
 public class MessageHandlerFactory {
   
   Class<? extends MessageProcessor> handlerClass;
@@ -53,7 +55,7 @@ public class MessageHandlerFactory {
     return this;
   }
   
-  public MessageHandler build() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
+  public MessageHandler build() throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException, MessageHandlerException {
     MessageHandler mh = new MessageHandler(handlerClass);
     mh.setBrokerUrl(brokerUrl);
     mh.setErrorTransportName(errorTransportName);
