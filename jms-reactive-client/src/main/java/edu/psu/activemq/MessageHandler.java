@@ -206,7 +206,7 @@ public class MessageHandler {
           if (msgCount > messageThreshold || handlerList.isEmpty()) {
             if (handlerList.size() < cores) {
               try {
-                log.trace("Constructing a new Message Processor");
+                log.info("Constructing a new Message Processor, Message Count: {}, Handler List Size: {}", msgCount, handlerList.size());
                 handlerList.add(buildNewMessageProcessor());
                 failedProcessorBuilds = 0;
                 log.trace("############# Now " + handlerList.size() + " processors");
