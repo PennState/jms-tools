@@ -189,6 +189,7 @@ public abstract class MessageProcessor {
               }
             }
           }
+          log.info("Stopping processor");
         } catch (Exception e) {
           stopped = true;
           log.error("Processor exception processing message.", e);
@@ -203,8 +204,10 @@ public abstract class MessageProcessor {
           } catch (JMSException e) {
           }
           try {
+            log.info("Closing connection");
             connection.close();
           } catch (JMSException e) {
+            log.warn("Error closing connection", e);
           }
         }
       }
