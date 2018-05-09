@@ -70,7 +70,7 @@ public class MessageHandler {
 
   int messageThreshold = 10;
   int recheckPeriod = 6000;
-  int maxProcessorFailures = 30;
+  int maxProcessorFailures = 10;
   int cores;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
