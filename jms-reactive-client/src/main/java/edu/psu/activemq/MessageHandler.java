@@ -70,7 +70,7 @@ public class MessageHandler {
 
   int messageThreshold = 10;
   int recheckPeriod = 6000;
-  int maxProcessorFailures = 30; 
+  int maxProcessorFailures = 30;
   int cores;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
@@ -174,32 +174,54 @@ public class MessageHandler {
     return value == null || value.isEmpty();
   }
 
+  Connection connection = null;
+  QueueBrowser browser = null;
+
+  private int getCurrentQueueSize() {
+    // try 5 times to get
+    for (int i = 0; i < 5; i++) {
+      try {
+        if (connection == null || browser == null) {
+          connection = buildActivemqConnection(brokerUrl, username, password);
+          connection.start();
+          Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
+          Queue destination = session.createQueue(transportName);
+          browser = session.createBrowser(destination);
+        }
+
+        return Collections.list(browser.getEnumeration())
+                          .size();
+      } catch (JMSException e) {
+        // failed to connect
+        log.warn("Failed to get message count", e);
+        if (connection != null) {
+          try {
+            connection.close();
+          } catch (Exception ex) {
+          }
+          connection = null;
+        }
+        try {
+          Thread.sleep(30000L);
+        } catch (InterruptedException ie) {
+          log.warn(ie.toString());
+        }
+      }
+    }
+
+    throw new RuntimeException("Failed to connect to queue and get message count");
+  }
+
   private void startMonitor() throws MessageHandlerException {
     log.info("Starting the monitor");
 
     try {
-      log.trace("Creating a connection");
-      Connection connection = buildActivemqConnection(brokerUrl, username, password);
-      log.trace("Starting the connection");
-      connection.start();
-      log.trace("Creating a session");
-      Session session = connection.createSession(false, Session.AUTO_ACKNOWLEDGE);
-
-      Queue destination = session.createQueue(transportName);
-
-      QueueBrowser browser;
-      try {
-        browser = session.createBrowser(destination);
-      } catch (JMSException e1) {
-        throw new RuntimeException("Boom");
-      }
-
       int failedProcessorBuilds = 0;
 
-      while (true) {
+      boolean monitor = true;
+      while (monitor) {
         @SuppressWarnings("unchecked")
-        int msgCount = Collections.list(browser.getEnumeration())
-                                  .size();
+        int msgCount = this.getCurrentQueueSize();
         log.debug("Current Queue Size: " + (msgCount));
         try {
           log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
@@ -213,8 +235,9 @@ public class MessageHandler {
               } catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException e1) {
                 log.error("Error building new message processor: " + e1.getMessage(), e1);
                 failedProcessorBuilds++;
-                //if exceeded max failures and no active processors, exit handler
-                if(failedProcessorBuilds >= maxProcessorFailures && handlerList.isEmpty()) {
+                // if exceeded max failures and no active processors, exit
+                // handler
+                if (failedProcessorBuilds >= maxProcessorFailures && handlerList.isEmpty()) {
                   String msg = "Failed processor count: " + failedProcessorBuilds + " exceeded max failures: " + maxProcessorFailures + " and handler list empty";
                   log.error(msg);
                   throw new MessageHandlerException(msg);
@@ -226,8 +249,7 @@ public class MessageHandler {
             MessageProcessor mp = handlerList.remove(handlerList.size() - 1);
             mp.terminate();
             log.trace("############# Now " + handlerList.size() + " processors");
-          }
-          else {
+          } else {
             log.debug("No action, Message Count: {}, Handler List Size: {}", msgCount, handlerList.size());
           }
 
@@ -244,18 +266,14 @@ public class MessageHandler {
           log.error("Error in message handler", e);
         }
       }
-    } catch (JMSException e) {
-      log.error("Error connecting to queue", e);
-      // try reconnecting after 30 seconds
-      try {
-        Thread.sleep(30000L);
-      } catch (InterruptedException ie) {
-        log.warn(ie.toString());
+    } catch (Exception e) {
+      log.error("Error in message handler, stopping all message processor", e);
+      for (int i = 0; i < handlerList.size(); i++) {
+        MessageProcessor mp = handlerList.get(i);
+        mp.terminate();
       }
-
-      this.startMonitor();
+      throw e;
     }
-
   }
 
   private MessageProcessor buildNewMessageProcessor() throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
