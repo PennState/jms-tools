@@ -192,16 +192,11 @@ public class MessageHandler {
         throw new RuntimeException("Boom");
       }
 
-      @SuppressWarnings("unchecked")
-      int startingMessageCount = Collections.list(browser.getEnumeration())
-                                            .size();
-
       while (true) {
         @SuppressWarnings("unchecked")
         int msgCount = Collections.list(browser.getEnumeration())
                                   .size();
-        log.info("Processed: " + (startingMessageCount - msgCount));
-        startingMessageCount = msgCount;
+        log.debug("Current Queue Size: " + (msgCount));
         try {
           log.trace("Checking thresholds, count = " + msgCount + " threshold = " + messageThreshold);
           if (msgCount > messageThreshold) {
