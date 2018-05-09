@@ -94,6 +94,12 @@ public class MessageHandler {
       }
 
       cores = Runtime.getRuntime().availableProcessors();
+      log.info("Running with {} cores", cores);
+      if(cores > 8) {
+        log.info("Setting max cores of 8");
+        cores = 8;
+      }
+      
       log.trace("Calling start monitor");    
       startMonitor();
     } catch (IllegalArgumentException e) {
