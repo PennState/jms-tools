@@ -222,16 +222,19 @@ public class MessageHandler {
               }
             }
           } else if (handlerList.size() > 1) {
-            log.trace("Removing a Message Processor");
+            log.info("Removing a Message Processor, Message Count: {}, Handler List Size: {}", msgCount, handlerList.size());
             MessageProcessor mp = handlerList.remove(handlerList.size() - 1);
             mp.terminate();
             log.trace("############# Now " + handlerList.size() + " processors");
+          }
+          else {
+            log.debug("No action, Message Count: {}, Handler List Size: {}", msgCount, handlerList.size());
           }
 
           for (int i = 0; i < handlerList.size(); i++) {
             MessageProcessor mp = handlerList.get(i);
             if (mp.isStopped()) {
-              log.trace("Removing stopped processor");
+              log.info("Removing stopped processor");
               handlerList.remove(i);
             }
           }
