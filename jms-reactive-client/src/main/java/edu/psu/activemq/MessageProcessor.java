@@ -136,9 +136,11 @@ public abstract class MessageProcessor {
           try {
             Message message = null;
             while (process) {
-              message = consumer.receive();
+              message = consumer.receive(10000);
+              if(message == null) {
+                continue;
+              }
               try {
-
                 // set unique id for logging
                 try {
                   MDC.put(UNIQUE_ID_MDC_KEY, message.getJMSMessageID());
