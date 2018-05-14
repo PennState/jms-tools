@@ -40,6 +40,7 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 public abstract class MessageProcessor {
 
+  private static final String AMQ_JOB_ID_PROP_NAME = "scheduledJobId";
   private static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
   private static final String UNIQUE_ID_MDC_KEY = "uniqueId";
 
@@ -155,7 +156,9 @@ public abstract class MessageProcessor {
                   ActiveMQMessage msg = (ActiveMQMessage) message;
                   msg.setReadOnlyProperties(false);
                   msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
-
+                  //null out AMQ scheduledJobId or will only work on first re-delivery
+                  msg.setProperty(AMQ_JOB_ID_PROP_NAME, null);
+                  
                   log.debug("Getting retry count");
                   int retryCount = 0;
                   String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
