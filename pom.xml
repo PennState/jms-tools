@@ -4,7 +4,7 @@
 
   <groupId>edu.psu.swe.libraries</groupId>
   <artifactId>jms-tools</artifactId>
-  <version>0.4-SNAPSHOT</version>
+  <version>0.4</version>
   <packaging>pom</packaging>
   <url>${project.parent}/libraries/jms-utils</url>
   
