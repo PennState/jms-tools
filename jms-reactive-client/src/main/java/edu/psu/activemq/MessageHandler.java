@@ -177,6 +177,7 @@ public class MessageHandler {
       try {
         browser = session.createBrowser(destination);
       } catch (JMSException e1) {
+        // TODO - add https://www.youtube.com/watch?v=Ec-8A5k16Ak or something else more descriptive
         throw new RuntimeException("Boom");
       }
 
