@@ -82,6 +82,9 @@ under the License.
     <java.compiler.source>1.8</java.compiler.source>
     <java.compiler.target>1.8</java.compiler.target>
 
+    <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+    <project.reporting.sourceEncoding>UTF-8</project.reporting.sourceEncoding>
+
     <activemq.version>5.15.3</activemq.version>
     <assertj.version>3.9.1</assertj.version>
     <junit-qualifier />
@@ -202,18 +205,6 @@ under the License.
         <configuration>
           <source>${java.compiler.source}</source>
           <target>${java.compiler.target}</target>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.3</version>
-        <goals>
-          <goal>jar</goal>
-          <goal>test-jar</goal>
-        </goals>
-        <configuration>
-          <additionalparam>-Xdoclint:none</additionalparam>
         </configuration>
       </plugin>
       <plugin>
