@@ -189,7 +189,7 @@ public class MessageHandler {
       queueSizeHeartbeatCount = Integer.parseInt(queueSizeHeartbeatString);
     }
     else {
-      queueSizeHeartbeatCount = 600;
+      queueSizeHeartbeatCount = 100;
     }
   }
 
