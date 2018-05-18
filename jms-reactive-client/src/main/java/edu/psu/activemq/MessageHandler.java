@@ -1,5 +1,23 @@
 package edu.psu.activemq;
 
+/*
+ * Copyright (c) 2018 by The Pennsylvania State University
+ * 
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ * 
+ *   http://www.apache.org/licenses/LICENSE-2.0
+ * 
+ * Unless required by applicable law or agreed to in writing,
+ * software distributed under the License is distributed on an
+ * "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+ * KIND, either express or implied.  See the License for the
+ * specific language governing permissions and limitations
+ * under the License.
+ */
+
+
 import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
@@ -38,6 +56,8 @@ public class MessageHandler {
   public static final String ERROR_TRANSPORT_TYPE_PROP_NAME = "error.transport.type";
   public static final String ERROR_MESSAGE_CONVERT = "error.message.convert";
 
+  public static final String QUEUE_SIZE_HEARTBEAT_LOG_COUNT = "queue.size.log.cycle.count";
+  
   public static final String MESSAGE_QUEUE_OR_TOPIC_ONLY = "If provided, the " + ERROR_TRANSPORT_TYPE_PROP_NAME + " parameter must be set to either QUEUE or TOPIC";
   public static final String MESSAGE_NO_VALUE_FOR_REQUIRED_PROPERTY = BROKER_URL_PROP_NAME + ", " + TRANSPORT_NAME_PROP_NAME + ", " + ", " + BROKER_USERNAME_PROP_NAME + " and " + BROKER_PASSWORD_PROP_NAME + " are required configuration properties with no defaults";
   public static final String MESSAGE_RETRY_THRESHOLD_MUST_BE_AN_INTEGER = REQUEST_RETRY_THRESHOLD + " must be an integer";
@@ -72,6 +92,7 @@ public class MessageHandler {
   int recheckPeriod = 6000;
   int maxProcessorFailures = 10;
   int cores;
+  int queueSizeHeartbeatCount;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     constructor = clazz.getConstructor();
@@ -162,6 +183,14 @@ public class MessageHandler {
     if (errorMessageConvertString != null && !errorMessageConvertString.isEmpty()) {
       convertErrorMessage = Boolean.parseBoolean(errorMessageConvertString);
     }
+    
+    String queueSizeHeartbeatString = PropertyUtil.getProperty(QUEUE_SIZE_HEARTBEAT_LOG_COUNT);
+    if (queueSizeHeartbeatString != null && !queueSizeHeartbeatString.isEmpty()) {
+      queueSizeHeartbeatCount = Integer.parseInt(queueSizeHeartbeatString);
+    }
+    else {
+      queueSizeHeartbeatCount = 100;
+    }
   }
 
   void validateConfiguration() {
@@ -217,7 +246,8 @@ public class MessageHandler {
 
     try {
       int failedProcessorBuilds = 0;
-
+      int noActionCycles = 0;
+      
       boolean monitor = true;
       while (monitor) {
         @SuppressWarnings("unchecked")
@@ -249,8 +279,15 @@ public class MessageHandler {
             MessageProcessor mp = handlerList.remove(handlerList.size() - 1);
             mp.terminate();
             log.trace("############# Now " + handlerList.size() + " processors");
-          } else {
-            log.debug("No action, Message Count: {}, Handler List Size: {}", msgCount, handlerList.size());
+          } else {            
+            if(noActionCycles >= queueSizeHeartbeatCount) {
+              log.info("No action, Message Count: {}, Handler List Size: {}", msgCount, handlerList.size());
+              noActionCycles = 0;
+            }
+            else {
+              log.debug("No action, Message Count: {}, Handler List Size: {}", msgCount, handlerList.size());
+              noActionCycles++;
+            }            
           }
 
           for (int i = 0; i < handlerList.size(); i++) {
