@@ -1,10 +1,4 @@
-package edu.psu.activemq;
-
-import edu.psu.activemq.TypeDelegatingMessageProcessor;
-import edu.psu.activemq.stub.AlternateDelegate;
-import edu.psu.activemq.stub.AlternateMessage;
-import edu.psu.activemq.stub.ExampleDelegate;
-import edu.psu.activemq.stub.TestMessage;
+package edu.psu.activemq.stub;
 
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
@@ -23,23 +17,31 @@ import edu.psu.activemq.stub.TestMessage;
  * under the License.
  */
 
+import java.io.IOException;
+
+import edu.psu.activemq.TypeDelegate;
+import edu.psu.activemq.exception.DelegateException;
 import lombok.Getter;
-import lombok.Setter;
+import lombok.NoArgsConstructor;
 
-public class StubTypeDelegateProcessor extends TypeDelegatingMessageProcessor {
+@NoArgsConstructor
+public class AlternateDelegate implements TypeDelegate<AlternateMessage> {
 
   @Getter
-  @Setter
-  ExampleDelegate delegate = new ExampleDelegate();
-  
-  @Getter
-  @Setter
-  AlternateDelegate altDelegate = new AlternateDelegate();
+  private int messageCount = 0;
 
   @Override
-  protected void registerDelegatedMap() {
-    register(TestMessage.TYPE, delegate);
-    register(AlternateMessage.TYPE, altDelegate);
+  public AlternateMessage parseMessage(String json) throws DelegateException {
+    try {
+      return TestMessage.createJsonMapper().readValue(json, AlternateMessage.class);
+    } catch (IOException e) {
+      throw new DelegateException(e);
+    }
+  }
+
+  @Override
+  public void processMessage(AlternateMessage t) throws DelegateException {
+    messageCount++;
   }
 
 }

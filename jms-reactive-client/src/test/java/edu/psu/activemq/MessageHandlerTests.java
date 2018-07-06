@@ -30,6 +30,8 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
+import edu.psu.activemq.stub.StubMessageProcessor;
+
 @ExtendWith(MockitoExtension.class)
 public class MessageHandlerTests {
 

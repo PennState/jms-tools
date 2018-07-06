@@ -1,4 +1,4 @@
-package edu.psu.activemq;
+package edu.psu.activemq.stub;
 
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
@@ -19,6 +19,7 @@ package edu.psu.activemq;
 
 import java.io.IOException;
 
+import edu.psu.activemq.TypeDelegate;
 import edu.psu.activemq.exception.DelegateException;
 import lombok.Getter;
 import lombok.NoArgsConstructor;

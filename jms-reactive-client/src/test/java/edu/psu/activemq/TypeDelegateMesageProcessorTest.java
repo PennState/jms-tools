@@ -13,6 +13,10 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import edu.psu.activemq.exception.DelegateException;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
+import edu.psu.activemq.stub.AlternateDelegate;
+import edu.psu.activemq.stub.AlternateMessage;
+import edu.psu.activemq.stub.ExampleDelegate;
+import edu.psu.activemq.stub.TestMessage;
 
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
@@ -39,22 +43,36 @@ public class TypeDelegateMesageProcessorTest {
 
   @Spy
   private ExampleDelegate delegate;
+  
+  @Spy
+  private AlternateDelegate altDelegate;
 
   @BeforeEach
   public void init() {
     processor.setDelegate(delegate);
+    processor.setAltDelegate(altDelegate);
     processor.registerDelegatedMap();
   }
   
   @Test
   public void testMessageProcessing() throws Exception {
+    final int loop = 3;
     //process message multiple times to verify that the parse and process methods of delegate are executed
     TextMessage msg = createDefaultMessage();
-    for(int i = 1; i <= 3; i++) {
+    
+    for(int i = 1; i <= loop; i++) {
       processor.handleMessage(msg);
       Mockito.verify(delegate, Mockito.times(i)).parseMessage(Mockito.anyString());
       Mockito.verify(delegate, Mockito.times(i)).processMessage(Mockito.any(TestMessage.class));
       Assertions.assertEquals(i, delegate.getMessageCount());
+    }
+    
+    TextMessage altMsg = createAlternateMessage();
+    for(int i = 1; i <= loop; i++) {
+      processor.handleMessage(altMsg);
+      Mockito.verify(altDelegate, Mockito.times(i)).parseMessage(Mockito.anyString());
+      Mockito.verify(altDelegate, Mockito.times(i)).processMessage(Mockito.any(AlternateMessage.class));
+      Assertions.assertEquals(i, altDelegate.getMessageCount());
     }
   }
 
@@ -97,6 +115,13 @@ public class TypeDelegateMesageProcessorTest {
     TextMessage msg = new ActiveMQTextMessage();
     msg.setStringProperty(TypeDelegatingMessageProcessor.KEY_PROPERTY, TestMessage.TYPE);
     msg.setText(TestMessage.defaultJson());
+    return msg;
+  }
+  
+  private static TextMessage createAlternateMessage() throws Exception {
+    TextMessage msg = new ActiveMQTextMessage();
+    msg.setStringProperty(TypeDelegatingMessageProcessor.KEY_PROPERTY, AlternateMessage.TYPE);
+    msg.setText(AlternateMessage.defaultJson());
     return msg;
   }
 }

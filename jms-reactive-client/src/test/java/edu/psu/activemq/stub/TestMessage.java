@@ -1,4 +1,4 @@
-package edu.psu.activemq;
+package edu.psu.activemq.stub;
 
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
