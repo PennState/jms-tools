@@ -19,13 +19,13 @@ package edu.psu.activemq.stub;
 
 import java.io.IOException;
 
-import edu.psu.activemq.TypeDelegate;
+import edu.psu.activemq.TypeProcessor;
 import edu.psu.activemq.exception.DelegateException;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
 @NoArgsConstructor
-public class AlternateDelegate implements TypeDelegate<AlternateMessage> {
+public class AlternateDelegate implements TypeProcessor<AlternateMessage> {
 
   @Getter
   private int messageCount = 0;

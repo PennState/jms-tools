@@ -78,7 +78,7 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
     mapValueMap.put(key, mapValue);
   }
   
-  protected <T> void register(String key, TypeDelegate<T> delegate) {
+  protected <T> void register(String key, TypeProcessor<T> delegate) {
     MapValue<T> mapValue = new MapValue<>();
     mapValue.setConvertFunction(delegate::parseMessage);
     mapValue.setProcessorConsumer(delegate::processMessage);

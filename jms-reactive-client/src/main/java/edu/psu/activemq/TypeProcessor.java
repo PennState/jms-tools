@@ -19,7 +19,7 @@ package edu.psu.activemq;
 
 import edu.psu.activemq.exception.DelegateException;
 
-public interface TypeDelegate<T> {
+public interface TypeProcessor<T> {
 
   T parseMessage(String json) throws DelegateException;
 
