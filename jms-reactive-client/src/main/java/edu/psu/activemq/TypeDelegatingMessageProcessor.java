@@ -32,7 +32,7 @@ import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.TextNode;
 
-import edu.psu.activemq.exception.DelegateException;
+import edu.psu.activemq.exception.TypeProcessorException;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 import lombok.Data;
 import lombok.extern.slf4j.Slf4j;
@@ -65,7 +65,7 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
       String type = extractKey(tm).orElseThrow(()-> new UnableToProcessMessageException("Unable to determine message type"));
       MapValue mapValue = mapValueMap.get(type);
       mapValue.getProcessorConsumer().accept(mapValue.getConvertFunction().apply(tm.getText()));
-    } catch (JMSException | DelegateException e) {
+    } catch (JMSException | TypeProcessorException e) {
       throw new UnableToProcessMessageException(e.getMessage(), e);
     }
   }
@@ -78,7 +78,7 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
     mapValueMap.put(key, mapValue);
   }
   
-  protected <T> void register(String key, TypeDelegate<T> delegate) {
+  protected <T> void register(String key, TypeProcessor<T> delegate) {
     MapValue<T> mapValue = new MapValue<>();
     mapValue.setConvertFunction(delegate::parseMessage);
     mapValue.setProcessorConsumer(delegate::processMessage);

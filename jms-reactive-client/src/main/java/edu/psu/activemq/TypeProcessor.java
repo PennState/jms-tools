@@ -1,4 +1,4 @@
-package edu.psu.activemq.exception;
+package edu.psu.activemq;
 
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
@@ -17,21 +17,13 @@ package edu.psu.activemq.exception;
  * under the License.
  */
 
+import edu.psu.activemq.exception.TypeProcessorException;
 
-public class DelegateException extends RuntimeException {
+public interface TypeProcessor<T> {
 
-  private static final long serialVersionUID = 5063233938158661363L;
+  T parseMessage(String json) throws TypeProcessorException;
 
-  public DelegateException(String msg) {
-    super(msg);
-  }
+  void processMessage(T t) throws TypeProcessorException;
 
-  public DelegateException(String msg, Throwable t) {
-    super(msg, t);
-  }
-
-  public DelegateException(Throwable t) {
-    super(t);
-  }
 }
 

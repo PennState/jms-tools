@@ -11,7 +11,7 @@ import org.mockito.Mockito;
 import org.mockito.Spy;
 import org.mockito.junit.jupiter.MockitoExtension;
 
-import edu.psu.activemq.exception.DelegateException;
+import edu.psu.activemq.exception.TypeProcessorException;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 import edu.psu.activemq.stub.AlternateDelegate;
 import edu.psu.activemq.stub.AlternateMessage;
@@ -80,7 +80,7 @@ public class TypeDelegateMesageProcessorTest {
   @Test
   public void testDelegateParseMessageThrowingError() throws Exception {
     String error = "Forcing Error";
-    Mockito.doThrow(new DelegateException(error)).when(delegate).parseMessage(Mockito.anyString());
+    Mockito.doThrow(new TypeProcessorException(error)).when(delegate).parseMessage(Mockito.anyString());
     TextMessage msg = createDefaultMessage();
     UnableToProcessMessageException ex = Assertions.assertThrows(UnableToProcessMessageException.class, () -> processor.handleMessage(msg));
     Assertions.assertEquals(error, ex.getMessage());
@@ -89,7 +89,7 @@ public class TypeDelegateMesageProcessorTest {
   @Test
   public void testDelegateProcessMessageThrowingError() throws Exception {
     String error = "Forcing Error";
-    Mockito.doThrow(new DelegateException(error)).when(delegate).processMessage(Mockito.any(TestMessage.class));
+    Mockito.doThrow(new TypeProcessorException(error)).when(delegate).processMessage(Mockito.any(TestMessage.class));
     TextMessage msg = createDefaultMessage();
     UnableToProcessMessageException ex = Assertions.assertThrows(UnableToProcessMessageException.class, () -> processor.handleMessage(msg));
     Assertions.assertEquals(error, ex.getMessage());
