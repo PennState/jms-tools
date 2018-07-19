@@ -18,19 +18,19 @@ package edu.psu.activemq.exception;
  */
 
 
-public class DelegateException extends RuntimeException {
+public class TypeProcessorException extends RuntimeException {
 
   private static final long serialVersionUID = 5063233938158661363L;
 
-  public DelegateException(String msg) {
+  public TypeProcessorException(String msg) {
     super(msg);
   }
 
-  public DelegateException(String msg, Throwable t) {
+  public TypeProcessorException(String msg, Throwable t) {
     super(msg, t);
   }
 
-  public DelegateException(Throwable t) {
+  public TypeProcessorException(Throwable t) {
     super(t);
   }
 }

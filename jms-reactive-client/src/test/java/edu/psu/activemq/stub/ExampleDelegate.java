@@ -20,7 +20,7 @@ package edu.psu.activemq.stub;
 import java.io.IOException;
 
 import edu.psu.activemq.TypeProcessor;
-import edu.psu.activemq.exception.DelegateException;
+import edu.psu.activemq.exception.TypeProcessorException;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
@@ -31,16 +31,16 @@ public class ExampleDelegate implements TypeProcessor<TestMessage> {
   private int messageCount = 0;
 
   @Override
-  public TestMessage parseMessage(String json) throws DelegateException {
+  public TestMessage parseMessage(String json) throws TypeProcessorException {
     try {
       return TestMessage.createJsonMapper().readValue(json, TestMessage.class);
     } catch (IOException e) {
-      throw new DelegateException(e);
+      throw new TypeProcessorException(e);
     }
   }
 
   @Override
-  public void processMessage(TestMessage t) throws DelegateException {
+  public void processMessage(TestMessage t) throws TypeProcessorException {
     messageCount++;
   }
 

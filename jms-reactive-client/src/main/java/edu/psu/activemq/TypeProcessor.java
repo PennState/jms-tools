@@ -17,13 +17,13 @@ package edu.psu.activemq;
  * under the License.
  */
 
-import edu.psu.activemq.exception.DelegateException;
+import edu.psu.activemq.exception.TypeProcessorException;
 
 public interface TypeProcessor<T> {
 
-  T parseMessage(String json) throws DelegateException;
+  T parseMessage(String json) throws TypeProcessorException;
 
-  void processMessage(T t) throws DelegateException;
+  void processMessage(T t) throws TypeProcessorException;
 
 }
 
