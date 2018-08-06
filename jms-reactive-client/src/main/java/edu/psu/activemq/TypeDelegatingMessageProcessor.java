@@ -89,7 +89,6 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
   public static Optional<String> extractKey(TextMessage message) throws JMSException {
     String key = extractTypeFromProperty(message).orElse(null);
     if (key != null) {
-      log.info("Extracted key from Property: {}", key);
       return Optional.of(key);
     }
     
@@ -114,7 +113,6 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
         return Optional.empty();
       }
       if (typeNode instanceof TextNode) {
-        log.info("Returning key: {}", typeNode.asText());
         return Optional.ofNullable(typeNode.asText());
       }
       log.warn("TypeNode was not an instance of TextNode");

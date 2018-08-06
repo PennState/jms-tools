@@ -254,7 +254,6 @@ under the License.
         <version>1.4.5</version>
         <configuration>
           <failBuildOnCVSS>9</failBuildOnCVSS>
-          <failOnError>false</failOnError>
         </configuration>
         <executions>
           <execution>
