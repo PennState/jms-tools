@@ -85,7 +85,7 @@ under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.sourceEncoding>UTF-8</project.reporting.sourceEncoding>
 
-    <activemq.version>5.15.3</activemq.version>
+    <activemq.version>5.15.4</activemq.version>
     <assertj.version>3.9.1</assertj.version>
     <junit-qualifier />
     <junit-minor.version>2.0</junit-minor.version>
@@ -94,6 +94,7 @@ under the License.
     <logback.version>1.2.3</logback.version>
     <lombok.version>1.16.18</lombok.version>
     <mockito.version>2.18.0</mockito.version>
+    <resteasy-jackson2.version>3.6.1.Final</resteasy-jackson2.version>
     <slf4j.version>1.7.25</slf4j.version>
   </properties>
 
@@ -123,6 +124,11 @@ under the License.
         <groupId>org.apache.activemq</groupId>
         <artifactId>activemq-client</artifactId>
         <version>${activemq.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.jboss.resteasy</groupId>
+        <artifactId>resteasy-jackson2-provider</artifactId>
+        <version>${resteasy-jackson2.version}</version>
       </dependency>
       <dependency>
         <groupId>org.slf4j</groupId>
@@ -251,9 +257,10 @@ under the License.
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
-        <version>1.4.5</version>
+        <version>3.3.1</version>
         <configuration>
-          <failBuildOnCVSS>9</failBuildOnCVSS>
+          <failOnError>true</failOnError>
+          <failBuildOnCVSS>8</failBuildOnCVSS>
         </configuration>
         <executions>
           <execution>
@@ -310,6 +317,7 @@ under the License.
             <copyrightMessage>Copyright (c) 2018 by The Pennsylvania State University</copyrightMessage>
             <excludes>
               <exclude>**/*.md</exclude>
+              <exclude>**/.factorypath</exclude>
             </excludes>
           </configuration>
         </plugin>
