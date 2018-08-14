@@ -1,4 +1,4 @@
-package edu.psu.activemq;
+package edu.psu.activemq.stub;
 
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
@@ -20,6 +20,7 @@ package edu.psu.activemq;
 
 import javax.jms.Message;
 
+import edu.psu.activemq.MessageProcessor;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 
 public class StubMessageProcessor extends MessageProcessor {
