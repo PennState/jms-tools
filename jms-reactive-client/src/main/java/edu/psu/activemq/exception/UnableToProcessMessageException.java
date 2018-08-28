@@ -21,7 +21,7 @@ package edu.psu.activemq.exception;
 import lombok.Getter;
 import lombok.Setter;
 
-public class UnableToProcessMessageException extends Exception {
+public class UnableToProcessMessageException extends RuntimeException {
   
   public enum HandleAction {
     ERROR,
