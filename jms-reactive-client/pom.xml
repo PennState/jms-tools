@@ -8,15 +8,13 @@
   express or implied. See the License for the specific language governing permissions 
   and limitations under the License. -->
 
-<project xmlns="http://maven.apache.org/POM/4.0.0"
-  xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
   <modelVersion>4.0.0</modelVersion>
 
   <parent>
     <groupId>edu.psu.swe.libraries</groupId>
     <artifactId>jms-tools</artifactId>
-    <version>0.6-SNAPSHOT</version>
+    <version>0.7-SNAPSHOT</version>
   </parent>
 
   <artifactId>jms-reactive-client</artifactId>
@@ -39,8 +37,8 @@
     <dependency>
       <groupId>org.jboss.resteasy</groupId>
       <artifactId>resteasy-jackson2-provider</artifactId>
-      <version>3.0.19.Final</version>
     </dependency>
+
     <!-- Test scoped -->
     <dependency>
       <groupId>org.junit.jupiter</groupId>

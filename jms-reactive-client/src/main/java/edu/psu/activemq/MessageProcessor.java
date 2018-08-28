@@ -99,7 +99,7 @@ public abstract class MessageProcessor {
     process = false;
   }
 
-  void initialize() {
+  protected void initialize() {
     log.info("Initializing message processor...");
 
     Thread t = new Thread(new Runnable() {
