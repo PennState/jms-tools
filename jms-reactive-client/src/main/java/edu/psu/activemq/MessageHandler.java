@@ -22,6 +22,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 
 import javax.jms.Connection;
@@ -218,7 +219,7 @@ public class MessageHandler {
           browser = session.createBrowser(destination);
         }
 
-        return Collections.list(browser.getEnumeration())
+        return Collections.list((Enumeration<?>) browser.getEnumeration())
                           .size();
       } catch (JMSException e) {
         // failed to connect
@@ -250,7 +251,7 @@ public class MessageHandler {
       
       boolean monitor = true;
       while (monitor) {
-        @SuppressWarnings("unchecked")
+        //@SuppressWarnings("unchecked")
         int msgCount = this.getCurrentQueueSize();
         log.debug("Current Queue Size: " + (msgCount));
         try {
