@@ -15,7 +15,7 @@
   <parent>
     <groupId>edu.psu.swe.libraries</groupId>
     <artifactId>jms-tools</artifactId>
-    <version>0.6-SNAPSHOT</version>
+    <version>0.8-SNAPSHOT</version>
   </parent>
 
   <artifactId>jms-reactive-client</artifactId>
@@ -56,6 +56,7 @@
     </dependency>
 
     <!-- Test scoped -->
+
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-api</artifactId>
@@ -93,6 +94,7 @@
     </dependency>
 
     <!-- Test logging -->
+
     <dependency>
       <groupId>org.slf4j</groupId>
       <artifactId>jcl-over-slf4j</artifactId>

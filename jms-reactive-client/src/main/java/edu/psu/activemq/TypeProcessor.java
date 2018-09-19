@@ -18,12 +18,13 @@ package edu.psu.activemq;
  */
 
 import edu.psu.activemq.exception.TypeProcessorException;
+import edu.psu.activemq.exception.UnableToProcessMessageException;
 
 public interface TypeProcessor<T> {
 
   T parseMessage(String json) throws TypeProcessorException;
 
-  void processMessage(T t) throws TypeProcessorException;
+  void processMessage(T t) throws UnableToProcessMessageException;
 
 }
 
