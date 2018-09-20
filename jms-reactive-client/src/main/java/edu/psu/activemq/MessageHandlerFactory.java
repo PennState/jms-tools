@@ -35,20 +35,24 @@ public class MessageHandlerFactory {
   String brokerUrl;
 
   @Inject
-  @ConfigProperty(name = MessageHandler.TRANSPORT_NAME_PROP_NAME)
-  String transportName;  
-
-  @Inject
-  @ConfigProperty(name = MessageHandler.ERROR_TRANSPORT_NAME_PROP_NAME)
-  String errorTransportName;
-
-  @Inject
   @ConfigProperty(name = MessageHandler.BROKER_USERNAME_PROP_NAME)
   String username;
 
   @Inject
   @ConfigProperty(name = MessageHandler.BROKER_PASSWORD_PROP_NAME)
   String password;
+
+
+
+  @Inject
+  @ConfigProperty(name = MessageHandler.TRANSPORT_NAME_PROP_NAME)
+  String transportName;  
+
+
+
+  @Inject
+  @ConfigProperty(name = MessageHandler.ERROR_TRANSPORT_NAME_PROP_NAME)
+  String errorTransportName;
 
   @Inject
   @ConfigProperty(name = MessageHandler.ERROR_TRANSPORT_TYPE_PROP_NAME)
