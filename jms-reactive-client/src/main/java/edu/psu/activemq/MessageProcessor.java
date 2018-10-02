@@ -170,6 +170,7 @@ public abstract class MessageProcessor {
                 handleMessage(message);
                 consumer.acknowledge();
               } catch (UnableToProcessMessageException upme) {
+                log.error("Unable to process message: " + upme.getMessage(), upme);
                 if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
                   ActiveMQMessage msg = (ActiveMQMessage) message;
                   msg.setReadOnlyProperties(false);
