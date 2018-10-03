@@ -188,7 +188,7 @@ public abstract class MessageProcessor {
                     log.info("Retry count greater than threshold, process failure message");
                     processFailureMessage(message, upme);
                   } else {
-                    log.warn("Failure processing message:" + upme.getMessage(), upme);
+                    log.warn("Failure processing message: " + upme.getMessage(), upme);
                     log.info("Retry count less than threshold, increment count and requeue");
                     msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
                     // send message back to queue with greater retry count
@@ -253,7 +253,7 @@ public abstract class MessageProcessor {
   }
 
   private void processFailureMessage(Message message, Exception e) {
-    log.error("Failure processing message:" + e.getMessage(), e);
+    log.error("Failure processing message: " + e.getMessage(), e);
     if (errorProducer != null) {
       log.info("Sending to error queue");
       ActiveMQMessage msg = (ActiveMQMessage) message;
