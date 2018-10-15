@@ -17,6 +17,7 @@ package edu.psu.activemq;
  * under the License.
  */
 
+
 import java.io.IOException;
 import java.util.stream.Stream;
 
@@ -110,10 +111,10 @@ public class MessageProcessorTests {
 
     for (int i = 1; i < upme.getNumberOfRetries(); i++) {
       Double doubleRetryWait = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
-                                     .limit(i + 1)
-                                     .skip(i)
-                                     .findFirst()
-                                     .get();
+                                       .limit(i+1)
+                                       .skip(i)
+                                       .findFirst()
+                                       .get();
       long expectedRetryWait = doubleRetryWait.longValue();
       long actualRetryWait = mp.calculateRetryWait(i, upme);
       Assertions.assertEquals(expectedRetryWait, actualRetryWait);
@@ -132,12 +133,7 @@ public class MessageProcessorTests {
     upme.setNumberOfRetries(10);
 
     for (int i = 1; i < upme.getNumberOfRetries(); i++) {
-      Double doubleRetryWait = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
-                                     .limit(i + 1)
-                                     .skip(i)
-                                     .findFirst()
-                                     .get();
-      long expectedRetryWait = doubleRetryWait.longValue();
+      long expectedRetryWait = (long) (i * (double) 4 * upme.getRetryWait());
       long actualRetryWait = mp.calculateRetryWait(i, upme);
       Assertions.assertEquals(expectedRetryWait, actualRetryWait);
     }
