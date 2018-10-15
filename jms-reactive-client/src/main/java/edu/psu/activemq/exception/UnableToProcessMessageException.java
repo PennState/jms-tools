@@ -30,7 +30,7 @@ public class UnableToProcessMessageException extends RuntimeException {
   }
   
   public enum RetryStyle {
-    LINEAR,
+    STATIC,
     EXPONENTIAL
   }
   
@@ -44,7 +44,7 @@ public class UnableToProcessMessageException extends RuntimeException {
   
   @Getter
   @Setter
-  RetryStyle retryStyle = RetryStyle.LINEAR;
+  RetryStyle retryStyle = RetryStyle.STATIC;
   
   @Getter
   @Setter

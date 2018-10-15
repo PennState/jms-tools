@@ -21,6 +21,9 @@ import java.io.IOException;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
+import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Stream;
 
 import javax.jms.Connection;
 import javax.jms.Destination;
@@ -243,7 +246,7 @@ public abstract class MessageProcessor {
       processFailureMessage(message, upme);
     }
   }
-  
+
   public int getRetryCount(Message message) throws JMSException {
     log.debug("Getting retry count");
     int retryCount = 0;
@@ -257,7 +260,7 @@ public abstract class MessageProcessor {
   public boolean shouldRetry(Message message, UnableToProcessMessageException upme) throws JMSException {
     int retryCount = getRetryCount(message);
     int retryThreshold = requestRetryThreshold;
-    //allow exception to pass in number of retries
+    // allow exception to pass in number of retries
     if (upme.getNumberOfRetries() != null) {
       retryThreshold = upme.getNumberOfRetries();
     }
@@ -286,15 +289,22 @@ public abstract class MessageProcessor {
   public long calculateRetryWait(int retryCount, UnableToProcessMessageException upme) {
     // Assume linear
     long retryWait = upme.getRetryWait();
-    
+    int useRetryCount = retryCount + 1;
+
     // if Expo, then calculate new retry value
     if (upme.getRetryStyle()
             .equals(RetryStyle.EXPONENTIAL)) {
-      double newValue = retryCount * upme.getBackOffMultiplier() * upme.getRetryWait();
-      retryWait = (long)newValue;
+
+      Double newValue = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
+                              .limit(useRetryCount)
+                              .skip(useRetryCount - 1)
+                              .findFirst()
+                              .get();
+      retryWait = newValue.longValue();
 
     }
     return retryWait;
+
   }
 
   private void processFailureMessage(Message message, Exception e) {

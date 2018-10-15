@@ -1,6 +1,7 @@
 package edu.psu.activemq;
 
 import java.io.IOException;
+import java.util.stream.Stream;
 
 import javax.jms.JMSException;
 
@@ -91,7 +92,30 @@ public class MessageProcessorTests {
     upme.setNumberOfRetries(10);
 
     for (int i = 1; i < upme.getNumberOfRetries(); i++) {
-      long expectedRetryWait = (long) (i * (double) 1.5 * upme.getRetryWait());
+      Double doubleRetryWait = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
+                                       .limit(i+1)
+                                       .skip(i)
+                                       .findFirst()
+                                       .get();
+      long expectedRetryWait = doubleRetryWait.longValue();
+      long actualRetryWait = mp.calculateRetryWait(i, upme);
+      Assertions.assertEquals(expectedRetryWait, actualRetryWait);
+    }
+  }
+
+  @Test
+  public void calculateRetryWaitCustomExponentialTest() throws JMSException {
+
+    StubMessageProcessor mp = new StubMessageProcessor();
+
+    UnableToProcessMessageException upme = new UnableToProcessMessageException("Test Exception");
+    upme.setRetry(1000);
+    upme.setBackOffMultiplier((double) 4);
+    upme.setRetryStyle(RetryStyle.EXPONENTIAL);
+    upme.setNumberOfRetries(10);
+
+    for (int i = 1; i < upme.getNumberOfRetries(); i++) {
+      long expectedRetryWait = (long) (i * (double) 4 * upme.getRetryWait());
       long actualRetryWait = mp.calculateRetryWait(i, upme);
       Assertions.assertEquals(expectedRetryWait, actualRetryWait);
     }
