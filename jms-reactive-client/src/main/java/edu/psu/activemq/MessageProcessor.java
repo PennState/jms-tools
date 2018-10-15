@@ -1,5 +1,7 @@
 package edu.psu.activemq;
 
+import java.io.IOException;
+
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
  * 
@@ -16,7 +18,6 @@ package edu.psu.activemq;
  * specific language governing permissions and limitations
  * under the License.
  */
-
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -48,6 +49,7 @@ import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 
 import edu.psu.activemq.data.ErrorMessage;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
+import edu.psu.activemq.exception.UnableToProcessMessageException.RetryStyle;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -156,7 +158,7 @@ public abstract class MessageProcessor {
             Message message = null;
             while (process) {
               message = consumer.receive(10000);
-              if(message == null) {
+              if (message == null) {
                 continue;
               }
               try {
@@ -171,28 +173,16 @@ public abstract class MessageProcessor {
                 consumer.acknowledge();
               } catch (UnableToProcessMessageException upme) {
                 if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
-                  ActiveMQMessage msg = (ActiveMQMessage) message;
-                  msg.setReadOnlyProperties(false);
-                  msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, upme.getRetryWait());
-                  //null out AMQ scheduledJobId or will only work on first re-delivery
-                  msg.setProperty(AMQ_JOB_ID_PROP_NAME, null);
-                  
-                  log.debug("Getting retry count");
-                  int retryCount = 0;
-                  String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
-                  if (retryCountString != null) {
-                    retryCount = Integer.parseInt(retryCountString);
-                  }
-                  log.debug("Current count: {}, Threshold: {}", String.valueOf(retryCount), String.valueOf(requestRetryThreshold));
-                  if (retryCount >= requestRetryThreshold) {
-                    log.info("Retry count greater than threshold, process failure message");
-                    processFailureMessage(message, upme);
-                  } else {
+
+                  if (shouldRetry(message, upme)) {
                     log.warn("Failure processing message: " + upme.getMessage(), upme);
                     log.info("Retry count less than threshold, increment count and requeue");
-                    msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
+                    ActiveMQMessage msg = produceRetryMessage(message, upme);
                     // send message back to queue with greater retry count
                     producer.send(msg);
+                  } else {
+                    log.info("Retry count greater than threshold, process failure message");
+                    processFailureMessage(message, upme);
                   }
                 } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
                   log.info("Dropping message {}", message.getJMSMessageID());
@@ -228,7 +218,7 @@ public abstract class MessageProcessor {
             consumer.close();
           } catch (Exception e) {
           }
-          //close connection
+          // close connection
           try {
             if (connection != null) {
               log.info("Closing connection");
@@ -237,7 +227,7 @@ public abstract class MessageProcessor {
           } catch (Exception e) {
             log.warn("Error closing connection", e);
           }
-          //close error connection
+          // close error connection
           try {
             if (errorConnection != null) {
               log.info("Closing error connection");
@@ -250,6 +240,58 @@ public abstract class MessageProcessor {
       }
     });
     t.start();
+  }
+
+  private int getRetryCount(Message message) throws JMSException {
+    log.debug("Getting retry count");
+    int retryCount = 0;
+    String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
+    if (retryCountString != null) {
+      retryCount = Integer.parseInt(retryCountString);
+    }
+    return retryCount;
+  }
+
+  private boolean shouldRetry(Message message, UnableToProcessMessageException upme) throws JMSException {
+    int retryCount = getRetryCount(message);
+    int retryThreshold = requestRetryThreshold;
+    //allow exception to pass in number of retries
+    if (upme.getNumberOfRetries() != null) {
+      retryThreshold = upme.getNumberOfRetries();
+    }
+    log.debug("Current count: {}, Threshold: {}", String.valueOf(retryCount), String.valueOf(retryThreshold));
+    boolean ret = false;
+    if (retryCount < retryThreshold) {
+      ret = true;
+    }
+    return ret;
+  }
+
+  private ActiveMQMessage produceRetryMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
+    int retryCount = getRetryCount(message);
+    ActiveMQMessage msg = (ActiveMQMessage) message;
+    msg.setReadOnlyProperties(false);
+    long retryWait = calculateRetryWait(retryCount, upme);
+    msg.setLongProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY, retryWait);
+    // null out AMQ scheduledJobId or will only work on first
+    // re-delivery
+    msg.setProperty(AMQ_JOB_ID_PROP_NAME, null);
+    msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
+
+    return msg;
+  }
+
+  private long calculateRetryWait(int retryCount, UnableToProcessMessageException upme) {
+    // Assume linear
+    long retryWait = upme.getRetryWait();
+    
+    // if Expo, then calculate new retry value
+    if (upme.getRetryStyle()
+            .equals(RetryStyle.EXPONENTIAL)) {
+      retryWait = retryCount * (long)upme.getBackOffMultiplier() * upme.getRetryWait();
+
+    }
+    return retryWait;
   }
 
   private void processFailureMessage(Message message, Exception e) {
