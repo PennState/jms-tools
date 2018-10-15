@@ -289,15 +289,14 @@ public abstract class MessageProcessor {
   public long calculateRetryWait(int retryCount, UnableToProcessMessageException upme) {
     // Assume linear
     long retryWait = upme.getRetryWait();
-    int useRetryCount = retryCount + 1;
 
     // if Expo, then calculate new retry value
     if (upme.getRetryStyle()
             .equals(RetryStyle.EXPONENTIAL)) {
 
       Double newValue = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
-                              .limit(useRetryCount)
-                              .skip(useRetryCount - 1)
+                              .limit(retryCount)
+                              .skip(retryCount - 1)
                               .findFirst()
                               .get();
       retryWait = newValue.longValue();

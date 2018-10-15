@@ -110,8 +110,8 @@ public class MessageProcessorTests {
 
     for (int i = 1; i < upme.getNumberOfRetries(); i++) {
       Double doubleRetryWait = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
-                                     .limit(i + 1)
-                                     .skip(i)
+                                     .limit(i)
+                                     .skip(i-1)
                                      .findFirst()
                                      .get();
       long expectedRetryWait = doubleRetryWait.longValue();
@@ -133,8 +133,8 @@ public class MessageProcessorTests {
 
     for (int i = 1; i < upme.getNumberOfRetries(); i++) {
       Double doubleRetryWait = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
-                                     .limit(i + 1)
-                                     .skip(i)
+                                     .limit(i)
+                                     .skip(i-1)
                                      .findFirst()
                                      .get();
       long expectedRetryWait = doubleRetryWait.longValue();
