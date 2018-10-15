@@ -60,9 +60,9 @@ import lombok.extern.slf4j.Slf4j;
 @Data
 public abstract class MessageProcessor {
 
-  private static final String AMQ_JOB_ID_PROP_NAME = "scheduledJobId";
-  private static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
-  private static final String UNIQUE_ID_MDC_KEY = "uniqueId";
+  public static final String AMQ_JOB_ID_PROP_NAME = "scheduledJobId";
+  public static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
+  public static final String UNIQUE_ID_MDC_KEY = "uniqueId";
 
   @Getter(value = AccessLevel.NONE)
   @Setter(value = AccessLevel.NONE)
@@ -172,24 +172,7 @@ public abstract class MessageProcessor {
                 handleMessage(message);
                 consumer.acknowledge();
               } catch (UnableToProcessMessageException upme) {
-                if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
-
-                  if (shouldRetry(message, upme)) {
-                    log.warn("Failure processing message: " + upme.getMessage(), upme);
-                    log.info("Retry count less than threshold, increment count and requeue");
-                    ActiveMQMessage msg = produceRetryMessage(message, upme);
-                    // send message back to queue with greater retry count
-                    producer.send(msg);
-                  } else {
-                    log.info("Retry count greater than threshold, process failure message");
-                    processFailureMessage(message, upme);
-                  }
-                } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
-                  log.info("Dropping message {}", message.getJMSMessageID());
-                } else {
-                  processFailureMessage(message, upme);
-                }
-
+                handleUnableToProcessMessage(message, upme);
                 consumer.acknowledge();
               } catch (Exception e) {
                 processFailureMessage(message, e);
@@ -242,7 +225,26 @@ public abstract class MessageProcessor {
     t.start();
   }
 
-  private int getRetryCount(Message message) throws JMSException {
+  private void handleUnableToProcessMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
+    if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
+      if (shouldRetry(message, upme)) {
+        log.warn("Failure processing message: " + upme.getMessage(), upme);
+        log.info("Retry count less than threshold, increment count and requeue");
+        ActiveMQMessage msg = produceRetryMessage(message, upme);
+        // send message back to queue with greater retry count
+        producer.send(msg);
+      } else {
+        log.info("Retry count greater than threshold, process failure message");
+        processFailureMessage(message, upme);
+      }
+    } else if (UnableToProcessMessageException.HandleAction.DROP.equals(upme.getHandleAction())) {
+      log.info("Dropping message {}", message.getJMSMessageID());
+    } else {
+      processFailureMessage(message, upme);
+    }
+  }
+  
+  public int getRetryCount(Message message) throws JMSException {
     log.debug("Getting retry count");
     int retryCount = 0;
     String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
@@ -252,7 +254,7 @@ public abstract class MessageProcessor {
     return retryCount;
   }
 
-  private boolean shouldRetry(Message message, UnableToProcessMessageException upme) throws JMSException {
+  public boolean shouldRetry(Message message, UnableToProcessMessageException upme) throws JMSException {
     int retryCount = getRetryCount(message);
     int retryThreshold = requestRetryThreshold;
     //allow exception to pass in number of retries
@@ -267,7 +269,7 @@ public abstract class MessageProcessor {
     return ret;
   }
 
-  private ActiveMQMessage produceRetryMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
+  public ActiveMQMessage produceRetryMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
     int retryCount = getRetryCount(message);
     ActiveMQMessage msg = (ActiveMQMessage) message;
     msg.setReadOnlyProperties(false);
@@ -281,14 +283,15 @@ public abstract class MessageProcessor {
     return msg;
   }
 
-  private long calculateRetryWait(int retryCount, UnableToProcessMessageException upme) {
+  public long calculateRetryWait(int retryCount, UnableToProcessMessageException upme) {
     // Assume linear
     long retryWait = upme.getRetryWait();
     
     // if Expo, then calculate new retry value
     if (upme.getRetryStyle()
             .equals(RetryStyle.EXPONENTIAL)) {
-      retryWait = retryCount * (long)upme.getBackOffMultiplier() * upme.getRetryWait();
+      double newValue = retryCount * upme.getBackOffMultiplier() * upme.getRetryWait();
+      retryWait = (long)newValue;
 
     }
     return retryWait;
