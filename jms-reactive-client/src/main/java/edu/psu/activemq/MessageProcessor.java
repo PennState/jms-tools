@@ -174,6 +174,7 @@ public abstract class MessageProcessor {
 
                 handleMessage(message);
                 consumer.acknowledge();
+                log.debug("Acknowledge the message on the consumer");
               } catch (UnableToProcessMessageException upme) {
                 handleUnableToProcessMessage(message, upme);
                 consumer.acknowledge();
@@ -231,9 +232,9 @@ public abstract class MessageProcessor {
   private void handleUnableToProcessMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
     if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
       if (shouldRetry(message, upme)) {
-        log.warn("Failure processing message: " + upme.getMessage(), upme);
-        log.info("Retry count less than threshold, increment count and requeue");
         ActiveMQMessage msg = produceRetryMessage(message, upme);
+        log.warn("Failure processing message: " + upme.getMessage(), upme);
+        log.info("Retry count less than threshold, increment count and requeue, with delay time of " + msg.getStringProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY));
         // send message back to queue with greater retry count
         producer.send(msg);
       } else {
@@ -249,7 +250,7 @@ public abstract class MessageProcessor {
 
   public int getRetryCount(Message message) throws JMSException {
     log.debug("Getting retry count");
-    int retryCount = 0;
+    int retryCount = 1;  //must be GT 0 to allow retryCalculationDelay to work
     String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
     if (retryCountString != null) {
       retryCount = Integer.parseInt(retryCountString);
