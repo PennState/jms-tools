@@ -29,8 +29,26 @@ public class UnableToProcessMessageException extends RuntimeException {
     DROP
   }
   
+  public enum RetryStyle {
+    LINEAR,
+    EXPONENTIAL
+  }
+  
+  
   int retryWait = 0;
   HandleAction handleAction = HandleAction.ERROR;
+  
+  @Getter
+  @Setter
+  Integer numberOfRetries = null;
+  
+  @Getter
+  @Setter
+  RetryStyle retryStyle = RetryStyle.LINEAR;
+  
+  @Getter
+  @Setter
+  double backOffMultiplier = 1.5;
   
   @Getter
   @Setter

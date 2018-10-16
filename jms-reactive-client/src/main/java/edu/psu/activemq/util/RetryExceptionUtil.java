@@ -18,6 +18,7 @@ package edu.psu.activemq.util;
  */
 
 import edu.psu.activemq.exception.UnableToProcessMessageException;
+import edu.psu.activemq.exception.UnableToProcessMessageException.RetryStyle;
 
 public class RetryExceptionUtil {
   
@@ -48,6 +49,53 @@ public class RetryExceptionUtil {
   public static UnableToProcessMessageException createRetryException(String message, Exception e, int retryAmount) {
     UnableToProcessMessageException utpe = new UnableToProcessMessageException(message, e);
     utpe.setRetry(retryAmount);
+    return utpe;
+  }
+  
+
+  public static UnableToProcessMessageException createRetryBackoffException(String message) {
+    UnableToProcessMessageException utpe = new UnableToProcessMessageException(message);
+    utpe.setRetry(RetryExceptionUtil.DEFAULT_RETRY);
+    utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
+    return utpe;
+  }
+  
+  public static UnableToProcessMessageException createRetryBackoffException(String message, int retryAmount) {
+    UnableToProcessMessageException utpe = new UnableToProcessMessageException(message);
+    utpe.setRetry(retryAmount);
+    utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
+    return utpe;
+  }
+  
+  public static UnableToProcessMessageException createRetryBackoffException(String message, Exception e) {
+    UnableToProcessMessageException utpe = new UnableToProcessMessageException(message, e);
+    utpe.setRetry(RetryExceptionUtil.DEFAULT_RETRY);
+    utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
+    return utpe;
+  }
+  
+  public static UnableToProcessMessageException createRetryBackOffException(String message, Exception e, int retryAmount) {
+    UnableToProcessMessageException utpe = new UnableToProcessMessageException(message, e);
+    utpe.setRetry(retryAmount);
+    utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
+    return utpe;
+  }
+  
+  public static UnableToProcessMessageException createRetryBackOffException(String message, int retryAmount, double backOffMultiplier, int numberOfRetries) {
+    UnableToProcessMessageException utpe = new UnableToProcessMessageException(message);
+    utpe.setRetry(retryAmount);
+    utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
+    utpe.setBackOffMultiplier(backOffMultiplier);
+    utpe.setNumberOfRetries(numberOfRetries);
+    return utpe;
+  }
+  
+  public static UnableToProcessMessageException createRetryBackOffException(String message, Exception e, int retryAmount, double backOffMultiplier, int numberOfRetries) {
+    UnableToProcessMessageException utpe = new UnableToProcessMessageException(message, e);
+    utpe.setRetry(retryAmount);
+    utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
+    utpe.setBackOffMultiplier(backOffMultiplier);
+    utpe.setNumberOfRetries(numberOfRetries);
     return utpe;
   }
   
