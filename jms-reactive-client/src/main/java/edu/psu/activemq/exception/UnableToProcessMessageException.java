@@ -17,43 +17,38 @@ package edu.psu.activemq.exception;
  * under the License.
  */
 
-
 import lombok.Getter;
 import lombok.Setter;
 
 public class UnableToProcessMessageException extends RuntimeException {
-  
+
   public enum HandleAction {
-    ERROR,
-    RETRY,
-    DROP
+    ERROR, RETRY, DROP
   }
-  
+
   public enum RetryStyle {
-    LINEAR,
-    EXPONENTIAL
+    LINEAR, EXPONENTIAL
   }
-  
-  
+
   int retryWait = 0;
   HandleAction handleAction = HandleAction.ERROR;
-  
+
   @Getter
   @Setter
   Integer numberOfRetries = null;
-  
+
   @Getter
   @Setter
   RetryStyle retryStyle = RetryStyle.LINEAR;
-  
+
   @Getter
   @Setter
   double backOffMultiplier = 1.5;
-  
+
   @Getter
   @Setter
   String shortDescription;
-  
+
   @Getter
   @Setter
   String sourceSystem;
@@ -61,31 +56,31 @@ public class UnableToProcessMessageException extends RuntimeException {
   @Getter
   @Setter
   Integer initialOffset = 0;
-  
+
   private static final long serialVersionUID = 1497512404523880592L;
 
   public UnableToProcessMessageException(String why) {
     super(why);
   }
-  
+
   public UnableToProcessMessageException(String why, Throwable cause) {
     super(why, cause);
   }
-  
+
   public void setRetry(int retryWait) {
     handleAction = HandleAction.RETRY;
     this.retryWait = retryWait;
   }
-  
+
   public void setDrop() {
     handleAction = HandleAction.DROP;
     this.retryWait = 0;
   }
-  
+
   public HandleAction getHandleAction() {
     return handleAction;
   }
-  
+
   public int getRetryWait() {
     return retryWait;
   }

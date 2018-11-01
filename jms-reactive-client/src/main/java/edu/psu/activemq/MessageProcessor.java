@@ -21,8 +21,6 @@ import java.io.IOException;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.jms.Connection;
@@ -119,7 +117,8 @@ public abstract class MessageProcessor {
 
             RedeliveryPolicy rd = new RedeliveryPolicy();
             rd.setMaximumRedeliveries(2);
-            connection.getRedeliveryPolicyMap().put(new ActiveMQQueue(transportName), rd);
+            connection.getRedeliveryPolicyMap()
+                      .put(new ActiveMQQueue(transportName), rd);
 
             connection.start();
             Session session = connection.createSession(false, Session.CLIENT_ACKNOWLEDGE);
@@ -228,14 +227,12 @@ public abstract class MessageProcessor {
     t.start();
   }
 
-  private void handleUnableToProcessMessage(Message message, UnableToProcessMessageException upme)
-      throws JMSException, IOException {
+  private void handleUnableToProcessMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
     if (UnableToProcessMessageException.HandleAction.RETRY.equals(upme.getHandleAction())) {
       if (shouldRetry(message, upme)) {
         ActiveMQMessage msg = produceRetryMessage(message, upme);
         log.warn("Failure processing message: " + upme.getMessage(), upme);
-        log.info("Retry count less than threshold, increment count and requeue, with delay time of "
-            + msg.getStringProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY));
+        log.info("Retry count less than threshold, increment count and requeue, with delay time of " + msg.getStringProperty(ScheduledMessage.AMQ_SCHEDULED_DELAY));
         // send message back to queue with greater retry count
         producer.send(msg);
       } else {
@@ -270,8 +267,7 @@ public abstract class MessageProcessor {
     return (retryCount <= retryThreshold) ? true : false;
   }
 
-  public ActiveMQMessage produceRetryMessage(Message message, UnableToProcessMessageException upme)
-      throws JMSException, IOException {
+  public ActiveMQMessage produceRetryMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
     int retryCount = getRetryCount(message);
     ActiveMQMessage msg = (ActiveMQMessage) message;
     msg.setReadOnlyProperties(false);
@@ -296,10 +292,14 @@ public abstract class MessageProcessor {
 
     if (retryCount == 1 && initialOffset > 0) {
       retryWait = initialOffset.longValue();
-    } else if (upme.getRetryStyle().equals(RetryStyle.EXPONENTIAL)) {
+    } else if (upme.getRetryStyle()
+                   .equals(RetryStyle.EXPONENTIAL)) {
       // if Expo, then calculate new retry value
       Double newValue = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
-          .limit(retryCount).skip(retryCount - 1).findFirst().get();
+                              .limit(retryCount)
+                              .skip(retryCount - 1)
+                              .findFirst()
+                              .get();
       retryWait = newValue.longValue();
     }
     return retryWait;
@@ -325,9 +325,11 @@ public abstract class MessageProcessor {
             String shortMessage = e.getMessage();
             if (shortMessage != null) {
               int shortMessageLength = shortMessage.length() > 256 ? 256 : shortMessage.length();
-              em.setShortDescription(e.getMessage().substring(0, shortMessageLength));
+              em.setShortDescription(e.getMessage()
+                                      .substring(0, shortMessageLength));
             } else {
-              em.setShortDescription("Error: " + e.getClass().getName());
+              em.setShortDescription("Error: " + e.getClass()
+                                                  .getName());
             }
           }
 
@@ -350,8 +352,7 @@ public abstract class MessageProcessor {
       } catch (JMSException e1) {
         if (e instanceof UnableToProcessMessageException) {
           UnableToProcessMessageException up = (UnableToProcessMessageException) e;
-          log.error("Unable to send message on error queue: {} {} {}", up.getShortDescription(), up.getSourceSystem(),
-              up.getMessage());
+          log.error("Unable to send message on error queue: {} {} {}", up.getShortDescription(), up.getSourceSystem(), up.getMessage());
         }
         log.error("Unable to send message on error queue: " + e.getMessage());
       }
