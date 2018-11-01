@@ -70,7 +70,7 @@ public class MessageProcessorTests {
 
     StubMessageProcessor mp = new StubMessageProcessor();
 
-    int retryCount = 3;
+    int retryCount = 4;
     ActiveMQMessage message = new ActiveMQMessage();
     message.setStringProperty(StubMessageProcessor.DELIVERY_COUNT_PROP_NAME, Integer.toString(retryCount));
 

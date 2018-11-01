@@ -267,7 +267,7 @@ public abstract class MessageProcessor {
       retryThreshold = upme.getNumberOfRetries();
     }
     log.debug("Current count: {}, Threshold: {}", String.valueOf(retryCount), String.valueOf(retryThreshold));
-    return (retryCount < retryThreshold) ? true : false;
+    return (retryCount <= retryThreshold) ? true : false;
   }
 
   public ActiveMQMessage produceRetryMessage(Message message, UnableToProcessMessageException upme)
