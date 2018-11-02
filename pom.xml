@@ -269,7 +269,7 @@ under the License.
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
-        <version>3.3.1</version>
+        <version>3.3.4</version>
         <configuration>
           <failOnError>true</failOnError>
           <failBuildOnCVSS>8</failBuildOnCVSS>
@@ -277,6 +277,7 @@ under the License.
         <executions>
           <execution>
             <goals>
+              <goal>check</goal>
               <goal>aggregate</goal>
             </goals>
           </execution>
