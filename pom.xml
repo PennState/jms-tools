@@ -91,6 +91,15 @@ under the License.
     <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
     <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
 
+    <!-- This property will configure the Surefire (and Failsafe) plugins in
+         a way that doesn't specify the plugin version and replaces the
+         commented out plugin definition below.  This is necessary on Debian
+         (and derived) OSes until the patch that fixes the default value is
+         applied.
+         
+         See: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+    <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+    
     <activemq.version>5.15.4</activemq.version>
     <assertj.version>3.9.1</assertj.version>
     <cdi-api.version>2.0.SP1</cdi-api.version>
