@@ -21,8 +21,6 @@ import java.io.IOException;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
-import java.util.Optional;
-import java.util.function.Function;
 import java.util.stream.Stream;
 
 import javax.jms.Connection;
@@ -250,7 +248,7 @@ public abstract class MessageProcessor {
 
   public int getRetryCount(Message message) throws JMSException {
     log.debug("Getting retry count");
-    int retryCount = 1;  //must be GT 0 to allow retryCalculationDelay to work
+    int retryCount = 1; // must be GT 0 to allow retryCalculationDelay to work
     String retryCountString = message.getStringProperty(DELIVERY_COUNT_PROP_NAME);
     if (retryCountString != null) {
       retryCount = Integer.parseInt(retryCountString);
@@ -287,17 +285,22 @@ public abstract class MessageProcessor {
     // Assume linear
     long retryWait = upme.getRetryWait();
 
-    // if Expo, then calculate new retry value
-    if (upme.getRetryStyle()
-            .equals(RetryStyle.EXPONENTIAL)) {
+    Integer initialOffset = upme.getInitialOffset();
+    if (initialOffset == null) {
+      initialOffset = 0;
+    }
 
+    if (retryCount == 1 && initialOffset > 0) {
+      retryWait = initialOffset.longValue();
+    } else if (upme.getRetryStyle()
+                   .equals(RetryStyle.EXPONENTIAL)) {
+      // if Expo, then calculate new retry value
       Double newValue = Stream.iterate((double) upme.getRetryWait(), x -> (x * upme.getBackOffMultiplier()))
                               .limit(retryCount)
                               .skip(retryCount - 1)
                               .findFirst()
                               .get();
       retryWait = newValue.longValue();
-
     }
     return retryWait;
 

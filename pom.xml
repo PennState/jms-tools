@@ -21,7 +21,7 @@ under the License.
 
   <groupId>edu.psu.swe.libraries</groupId>
   <artifactId>jms-tools</artifactId>
-  <version>0.11</version>
+  <version>0.12</version>
   <packaging>pom</packaging>
   <url>${project.parent}/libraries/jms-utils</url>
 
@@ -85,7 +85,21 @@ under the License.
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.sourceEncoding>UTF-8</project.reporting.sourceEncoding>
 
-    <activemq.version>5.15.4</activemq.version>
+    <!-- Configuration for test coverage reporting in SonarQube -->
+    <sonar.core.codeCoveragePlugin>jacoco</sonar.core.codeCoveragePlugin>
+    <sonar.dynamicAnalysis>reuseReports</sonar.dynamicAnalysis>
+    <sonar.jacoco.reportPath>target/jacoco.exec</sonar.jacoco.reportPath>
+
+    <!-- This property will configure the Surefire (and Failsafe) plugins in
+         a way that doesn't specify the plugin version and replaces the
+         commented out plugin definition below.  This is necessary on Debian
+         (and derived) OSes until the patch that fixes the default value is
+         applied.
+         
+         See: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
+    <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
+    
+    <activemq.version>5.15.7</activemq.version>
     <assertj.version>3.9.1</assertj.version>
     <cdi-api.version>2.0.SP1</cdi-api.version>
     <junit-qualifier />
@@ -269,14 +283,16 @@ under the License.
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
-        <version>3.3.1</version>
+        <version>3.3.4</version>
         <configuration>
           <failOnError>true</failOnError>
           <failBuildOnCVSS>8</failBuildOnCVSS>
+          <!-- <failBuildOnAnyVulnerability>true</failBuildOnAnyVulnerability> -->
         </configuration>
         <executions>
           <execution>
             <goals>
+              <goal>check</goal>
               <goal>aggregate</goal>
             </goals>
           </execution>
@@ -285,6 +301,21 @@ under the License.
       <plugin>
         <groupId>org.apache.rat</groupId>
         <artifactId>apache-rat-plugin</artifactId>
+      </plugin>
+      <plugin>
+        <groupId>org.jacoco</groupId>
+        <artifactId>jacoco-maven-plugin</artifactId>
+        <version>0.8.2</version>
+        <executions>
+          <execution>
+            <goals>
+              <goal>prepare-agent</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <destFile>${sonar.jacoco.reportPath}</destFile>
+        </configuration>
       </plugin>
     </plugins>
     <pluginManagement>
