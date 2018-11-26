@@ -86,7 +86,7 @@ public class MessageHandler {
   String username;
   String password;
   TransportType errorTransportType = TransportType.QUEUE;
-  int requestRetryThreshold;
+  int requestRetryThreshold = 3;
   boolean convertErrorMessage = false;
 
   int messageThreshold = 10;
@@ -176,7 +176,6 @@ public class MessageHandler {
         throw new IllegalArgumentException(MESSAGE_RETRY_THRESHOLD_MUST_BE_AN_INTEGER);
       }
     } else {
-      requestRetryThreshold = 3;
       log.warn("Broker retry threshold was not supplied - defaulting to 3");
     }
 
