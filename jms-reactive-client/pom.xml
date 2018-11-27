@@ -14,7 +14,7 @@
   <parent>
     <groupId>edu.psu.swe.libraries</groupId>
     <artifactId>jms-tools</artifactId>
-    <version>0.12</version>
+    <version>0.13</version>
   </parent>
 
   <artifactId>jms-reactive-client</artifactId>
@@ -69,11 +69,6 @@
     <dependency>
       <groupId>org.junit.jupiter</groupId>
       <artifactId>junit-jupiter-engine</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>org.junit.platform</groupId>
-      <artifactId>junit-platform-launcher</artifactId>
       <scope>test</scope>
     </dependency>
     <dependency>
