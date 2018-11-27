@@ -93,7 +93,7 @@ public class MessageHandler {
   int recheckPeriod = 6000;
   int maxProcessorFailures = 10;
   int cores;
-  int queueSizeHeartbeatCount;
+  int queueSizeHeartbeatCount = 100;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     constructor = clazz.getConstructor();
@@ -176,7 +176,7 @@ public class MessageHandler {
         throw new IllegalArgumentException(MESSAGE_RETRY_THRESHOLD_MUST_BE_AN_INTEGER);
       }
     } else {
-      log.warn("Broker retry threshold was not supplied - defaulting to 3");
+      log.warn("Broker retry threshold was not supplied - defaulting to {}", requestRetryThreshold);
     }
 
     String errorMessageConvertString = PropertyUtil.getProperty(ERROR_MESSAGE_CONVERT);
@@ -189,7 +189,7 @@ public class MessageHandler {
       queueSizeHeartbeatCount = Integer.parseInt(queueSizeHeartbeatString);
     }
     else {
-      queueSizeHeartbeatCount = 100;
+      log.warn("The queueSizeHeartbeatCount property was not supplied - defaulting to {}", queueSizeHeartbeatCount);
     }
   }
 
