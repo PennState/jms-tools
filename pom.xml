@@ -99,7 +99,7 @@ under the License.
          See: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
     <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
     
-    <activemq.version>5.15.7</activemq.version>
+    <activemq.version>5.15.4</activemq.version>
     <assertj.version>3.11.1</assertj.version>
     <cdi-api.version>2.0.SP1</cdi-api.version>
     <junit-qualifier />
