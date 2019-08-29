@@ -35,7 +35,7 @@ public class UnableToProcessMessageException extends RuntimeException {
 
   @Getter
   @Setter
-  Integer numberOfRetries = 12;
+  Integer numberOfRetries = 10;
 
   @Getter
   @Setter
