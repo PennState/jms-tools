@@ -26,7 +26,7 @@ public class PropertyUtil {
       return property;
     }
     
-    String envVar = System.getenv(name.toUpperCase().replaceAll("\\.", "_"));
+    String envVar = getSystenEnv(name);
     if(envVar != null){
       return envVar;
     }
@@ -34,4 +34,20 @@ public class PropertyUtil {
     return null;
   }
   
+  public static String[] getPropertyArray(String name, String separator) {
+    String value = getProperty(name);
+    return separateValues(value, separator);
+  }
+  
+  private static String getSystenEnv(String name) {
+    String normalized = name.toUpperCase().replaceAll("\\.", "_");
+    return System.getenv(normalized);
+  }
+  
+  private static String[] separateValues(String value, String separator) {
+    if (value == null) {
+      return new String[]{};
+    }
+    return value.split(separator);
+  }
 }
