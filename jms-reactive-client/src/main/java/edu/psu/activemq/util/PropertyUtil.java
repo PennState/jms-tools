@@ -1,5 +1,11 @@
 package edu.psu.activemq.util;
 
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
+import org.assertj.core.util.Arrays;
+
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
  * 
@@ -37,6 +43,13 @@ public class PropertyUtil {
   public static String[] getPropertyArray(String name, String separator) {
     String value = getProperty(name);
     return separateValues(value, separator);
+  }
+  
+  public static List<String> getPropertyList(String name, String separator) {
+    List<String> list = new ArrayList<>();
+    String[] arrays = getPropertyArray(name, separator);
+    Collections.addAll(list, arrays);
+    return list;
   }
   
   private static String getSystenEnv(String name) {
