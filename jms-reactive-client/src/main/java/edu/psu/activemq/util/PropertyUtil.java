@@ -4,8 +4,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
-import org.assertj.core.util.Arrays;
-
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
  * 
