@@ -55,6 +55,17 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
     
     super.initialize();
   }
+  
+  @Override
+  public void terminate() {
+    log.debug("Terminating TypeDelegatingMessageProcessor");
+    super.terminate();
+    mapValueMap.forEach((k,v) -> {
+      log.debug("Calling clean up for Key: {}", k);
+      v.cleanUp.cleanUp();
+    });
+                                                  
+  }
 
   @Override
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -82,6 +93,7 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
     MapValue<T> mapValue = new MapValue<>();
     mapValue.setConvertFunction(delegate::parseMessage);
     mapValue.setProcessorConsumer(delegate::processMessage);
+    mapValue.setCleanUp(delegate::cleanUp);
     
     mapValueMap.put(key, mapValue);
   }
@@ -129,6 +141,7 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
   private class MapValue<T> {
     Function<String, T> convertFunction;
     Consumer<T> processorConsumer;
+    Cleanup cleanUp;
   }
 
 
