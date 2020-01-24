@@ -22,6 +22,7 @@ import java.lang.reflect.Constructor;
 import java.lang.reflect.InvocationTargetException;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Enumeration;
 import java.util.List;
 
 import javax.jms.Connection;
@@ -85,14 +86,14 @@ public class MessageHandler {
   String username;
   String password;
   TransportType errorTransportType = TransportType.QUEUE;
-  int requestRetryThreshold;
+  int requestRetryThreshold = 3;
   boolean convertErrorMessage = false;
 
   int messageThreshold = 10;
   int recheckPeriod = 6000;
   int maxProcessorFailures = 10;
   int cores;
-  int queueSizeHeartbeatCount;
+  int queueSizeHeartbeatCount = 100;
 
   public MessageHandler(Class<? extends MessageProcessor> clazz) throws NoSuchMethodException, SecurityException, InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException {
     constructor = clazz.getConstructor();
@@ -175,8 +176,7 @@ public class MessageHandler {
         throw new IllegalArgumentException(MESSAGE_RETRY_THRESHOLD_MUST_BE_AN_INTEGER);
       }
     } else {
-      requestRetryThreshold = 3;
-      log.warn("Broker retry threshold was not supplied - defaulting to 3");
+      log.warn("Broker retry threshold was not supplied - defaulting to {}", requestRetryThreshold);
     }
 
     String errorMessageConvertString = PropertyUtil.getProperty(ERROR_MESSAGE_CONVERT);
@@ -189,7 +189,7 @@ public class MessageHandler {
       queueSizeHeartbeatCount = Integer.parseInt(queueSizeHeartbeatString);
     }
     else {
-      queueSizeHeartbeatCount = 100;
+      log.warn("The queueSizeHeartbeatCount property was not supplied - defaulting to {}", queueSizeHeartbeatCount);
     }
   }
 
@@ -218,7 +218,7 @@ public class MessageHandler {
           browser = session.createBrowser(destination);
         }
 
-        return Collections.list(browser.getEnumeration())
+        return Collections.list((Enumeration<?>) browser.getEnumeration())
                           .size();
       } catch (JMSException e) {
         // failed to connect
@@ -250,7 +250,7 @@ public class MessageHandler {
       
       boolean monitor = true;
       while (monitor) {
-        @SuppressWarnings("unchecked")
+        //@SuppressWarnings("unchecked")
         int msgCount = this.getCurrentQueueSize();
         log.debug("Current Queue Size: " + (msgCount));
         try {
