@@ -75,6 +75,9 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
     try {
       String type = extractKey(tm).orElseThrow(()-> new UnableToProcessMessageException("Unable to determine message type"));
       MapValue mapValue = mapValueMap.get(type);
+      if (mapValue == null) {
+        throw new UnableToProcessMessageException("No processor mapped to type: " + type);
+      }
       mapValue.getProcessorConsumer().accept(mapValue.getConvertFunction().apply(tm.getText()));
     } catch (JMSException | TypeProcessorException e) {
       throw new UnableToProcessMessageException(e.getMessage(), e);
