@@ -12,6 +12,6 @@ jobs:
         SOURCE_BRANCH: "refs/remotes/source/*"
         DESTINATION_REPO: "git@git.psu.edu:mirrored/jms-tools.git"
         DESTINATION_BRANCH: "refs/heads/*"
-        SSH_PRIVATE_KEY: ${{ secrets.AITCI_GITHUB_MIRROR }}
+        SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
       with:
-        args: $SOURCE_REPO $SOURCE_BRANCH $DESTINATION_REPO $DESTINATION_BRANCH $SSH_PRIVATE_KEY
+        args: $SOURCE_REPO $SOURCE_BRANCH $DESTINATION_REPO $DESTINATION_BRANCH
