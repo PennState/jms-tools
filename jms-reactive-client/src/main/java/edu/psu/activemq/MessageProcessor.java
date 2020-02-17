@@ -283,13 +283,13 @@ public abstract class MessageProcessor {
 
   /*
   * long calculateRetryWait(int retryCount, UnableToProcessMessageException upme)
-  * if UnableToProcessMessageException.forceOffset is set as GT 0, then that value is used for the retryWait
+  * if UnableToProcessMessageException.ForceRetryWaitDelay is set as GT 0, then that value is used for the retryWait
   * used for when systems are down and tell us when they'll be back online (ie. workday)
   */
   public long calculateRetryWait(int retryCount, UnableToProcessMessageException upme) {
     // force offset will retryWait that amount
-    if (upme.getForceOffset() != null && upme.getForceOffset() > 0) {
-      return upme.getForceOffset().longValue();
+    if (upme.getForceRetryWaitDelay() != null && upme.getForceRetryWaitDelay() > 0) {
+      return upme.getForceRetryWaitDelay().longValue();
     } 
 
     // Assume linear
