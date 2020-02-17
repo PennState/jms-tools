@@ -57,6 +57,10 @@ public class UnableToProcessMessageException extends RuntimeException {
   @Setter
   Integer initialOffset = 0;
 
+  @Getter
+  @Setter
+  Integer forceOffset = 0;
+
   private static final long serialVersionUID = 1497512404523880592L;
 
   public UnableToProcessMessageException(String why) {
