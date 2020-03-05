@@ -223,23 +223,6 @@ under the License.
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.2.2</version>
-        <configuration>
-          <tagNameFormat>JRC-${project.version}</tagNameFormat>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.1</version>
-        <configuration>
-          <source>${java.compiler.source}</source>
-          <target>${java.compiler.target}</target>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
         <version>1.6.3</version>
@@ -252,8 +235,17 @@ under the License.
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.1</version>
+        <configuration>
+          <source>${java.compiler.source}</source>
+          <target>${java.compiler.target}</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.3</version>
+        <version>3.1.1</version>
         <executions>
           <execution>
             <id>attach-javadocs</id>
@@ -264,8 +256,14 @@ under the License.
           </execution>
         </executions>
         <configuration>
+          <source>8</source>
           <additionalparam>-Xdoclint:none</additionalparam>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <version>0.11</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -283,11 +281,12 @@ under the License.
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
-        <version>3.3.4</version>
+        <version>5.2.2</version>
         <configuration>
-          <failOnError>true</failOnError>
-          <failBuildOnCVSS>8</failBuildOnCVSS>
-          <!-- <failBuildOnAnyVulnerability>true</failBuildOnAnyVulnerability> -->
+          <cveValidForHours>24</cveValidForHours>
+          <format>ALL</format>
+          <failBuildOnAnyVulnerability>true</failBuildOnAnyVulnerability>
+          <failOnError>false</failOnError>
         </configuration>
         <executions>
           <execution>
@@ -297,10 +296,6 @@ under the License.
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.rat</groupId>
-        <artifactId>apache-rat-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
@@ -317,6 +312,24 @@ under the License.
           <destFile>${sonar.jacoco.reportPath}</destFile>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>1.3</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <shortRevisionLength>7</shortRevisionLength>
+          <doCheck>false</doCheck>
+          <doUpdate>false</doUpdate>
+        </configuration>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
@@ -326,15 +339,15 @@ under the License.
           <version>1.0.0-rc-1</version>
           <configuration>
             <autoVersionSubmodules>true</autoVersionSubmodules>
+            <allowUntracked>true</allowUntracked>
             <flowInitContext>
               <versionTagPrefix>REL-</versionTagPrefix>
             </flowInitContext>
+            <localOnly>true</localOnly>
+            <noDeploy>true</noDeploy>
+            <incrementDevelopFromReleaseVersion>true</incrementDevelopFromReleaseVersion>
+            <versionNumberToIncrement>1</versionNumberToIncrement>
           </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.rat</groupId>
@@ -380,6 +393,15 @@ under the License.
                 <goals>
                   <goal>sign</goal>
                 </goals>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                    <arg>--batch</arg>
+                    <arg>--no-tty</arg>
+                    <arg>--yes</arg>
+                  </gpgArguments>
+                </configuration>
               </execution>
             </executions>
           </plugin>
