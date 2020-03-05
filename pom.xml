@@ -367,6 +367,7 @@ under the License.
             <excludes>
               <exclude>**/*.md</exclude>
               <exclude>**/.factorypath</exclude>
+              <exclude>.github/**/*.*</exclude>
             </excludes>
           </configuration>
         </plugin>
