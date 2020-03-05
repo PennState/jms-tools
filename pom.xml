@@ -368,6 +368,7 @@ under the License.
               <exclude>**/*.md</exclude>
               <exclude>**/.factorypath</exclude>
               <exclude>.github/**/*.*</exclude>
+              <exclude>.vscode/**/*.*</exclude>
             </excludes>
           </configuration>
         </plugin>
