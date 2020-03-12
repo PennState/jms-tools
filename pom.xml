@@ -354,8 +354,6 @@ under the License.
             <localOnly>true</localOnly>
             <incrementDevelopFromReleaseVersion>true</incrementDevelopFromReleaseVersion>
             <versionNumberToIncrement>1</versionNumberToIncrement>
-            <pullDevelop>true</pullDevelop>
-            <pullMaster>true</pullMaster>
           </configuration>
         </plugin>
         <plugin>
