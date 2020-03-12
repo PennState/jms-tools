@@ -31,7 +31,7 @@ jobs:
        SIGNING_PASSPHRASE: ${{ secrets.SIGNING_PASSPHRASE }}
        OSSRH_USERNAME: aitci
        OSSRH_PASSWORD: ${{ secrets.OSSRH_PASSWORD }}
-       MAVEN_ARGS: -DallowSnapshots=false -DpushChanges=false -DallowUntracked=true -DpushReleases=false -Psign-artifacts
+       MAVEN_ARGS: -DallowSnapshots=false -DallowUntracked=true -Psign-artifacts
     # TODO: add steps to:
     # - Version POMs
     # - Package project
