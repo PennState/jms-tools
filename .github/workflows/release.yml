@@ -34,7 +34,5 @@ jobs:
        MAVEN_ARGS: -DallowSnapshots=false -DallowUntracked=true -Psign-artifacts
     # TODO: add steps to:
     # - Version POMs
-    # - Package project
-    # - Deploy Release to Maven Central
     # - Update POM to next Snapshot version (on develop branch)
     # - Add released artifacts to the release (publish) that started this build
