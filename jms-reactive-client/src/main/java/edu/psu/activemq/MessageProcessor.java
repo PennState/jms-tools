@@ -32,6 +32,13 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQMessageConsumer;
 import org.apache.activemq.ActiveMQMessageProducer;
@@ -40,13 +47,6 @@ import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.slf4j.MDC;
-
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
 
 import edu.psu.activemq.data.ErrorMessage;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
@@ -64,6 +64,7 @@ public abstract class MessageProcessor {
   public static final String AMQ_JOB_ID_PROP_NAME = "scheduledJobId";
   public static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
   public static final String UNIQUE_ID_MDC_KEY = "uniqueId";
+  public static final String CORRELATION_ID_MDC_KEY = "correlationId";
 
   @Getter(value = AccessLevel.NONE)
   @Setter(value = AccessLevel.NONE)
@@ -166,6 +167,8 @@ public abstract class MessageProcessor {
                 // set unique id for logging
                 try {
                   MDC.put(UNIQUE_ID_MDC_KEY, message.getJMSMessageID());
+                  MDC.put(CORRELATION_ID_MDC_KEY, message.getJMSCorrelationID());
+
                 } catch (IllegalArgumentException | JMSException e1) {
                   log.error("Error setting MDC unique id", e1);
                 }
@@ -183,6 +186,7 @@ public abstract class MessageProcessor {
                 // remove unique id for logging
                 try {
                   MDC.remove(UNIQUE_ID_MDC_KEY);
+                  MDC.remove(CORRELATION_ID_MDC_KEY);
                 } catch (IllegalArgumentException e1) {
                   log.error("Error remvoing MDC unique id");
                 }
@@ -278,14 +282,21 @@ public abstract class MessageProcessor {
     msg.setProperty(AMQ_JOB_ID_PROP_NAME, null);
     msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
 
+    // if correlationid is blank/null then populate with messageid for tracking
+    // future retries
+    if (msg.getJMSCorrelationID() == null || msg.getJMSCorrelationID()
+                                                .equals("")) {
+      msg.setJMSCorrelationID(msg.getJMSMessageID());
+    }
     return msg;
   }
 
   /*
-  * long calculateRetryWait(int retryCount, UnableToProcessMessageException upme)
-  * if UnableToProcessMessageException.ForceRetryWaitDelay is set as GT 0, then that value is used for the retryWait
-  * used for when systems are down and tell us when they'll be back online (ie. workday)
-  */
+   * long calculateRetryWait(int retryCount, UnableToProcessMessageException
+   * upme) if UnableToProcessMessageException.ForceRetryWaitDelay is set as GT
+   * 0, then that value is used for the retryWait used for when systems are down
+   * and tell us when they'll be back online (ie. workday)
+   */
   public long calculateRetryWait(int retryCount, UnableToProcessMessageException upme) {
     // Assume linear
     long retryWait = upme.getRetryWait();
@@ -298,7 +309,7 @@ public abstract class MessageProcessor {
     // force initial offset will retryWait that amount
     if (upme.isForceInitialOffsetDelay()) {
       return initialOffset.longValue();
-    } 
+    }
 
     if (retryCount == 1 && initialOffset > 0) {
       retryWait = initialOffset.longValue();
