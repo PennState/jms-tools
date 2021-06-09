@@ -107,7 +107,7 @@ under the License.
     <lombok.version>1.18.4</lombok.version>
     <microprofile-config.version>1.3</microprofile-config.version>
     <mockito.version>3.3.0</mockito.version>
-    <resteasy-jackson2.version>4.5.2.Final</resteasy-jackson2.version>
+    <resteasy-jackson2.version>4.6.0.Final</resteasy-jackson2.version>
     <slf4j.version>1.7.25</slf4j.version>
   </properties>
 
