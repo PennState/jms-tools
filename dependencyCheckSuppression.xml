@@ -8,6 +8,6 @@
         <cve>CVE-2015-5183</cve>        <!-- Ignores HawtIO console vulnerability since we only use the AMQ client -->
         <cve>CVE-2015-5184</cve>        <!-- Ignores HawtIO console vulnerability since we only use the AMQ client -->
         <cve>CVE-2018-8006</cve>        <!-- Ignores vulnerabilities in the AMQ web-based admin application since we only use the AMQ client -->
-
+        <cve>CVE-2021-20289</cve>       <!-- Ignores resteasy jackson provider vulnerability -->
     </suppress>
 </suppressions>
