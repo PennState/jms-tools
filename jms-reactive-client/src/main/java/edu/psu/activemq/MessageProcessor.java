@@ -23,6 +23,7 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.stream.Stream;
 
+import javax.inject.Inject;
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -46,6 +47,7 @@ import org.apache.activemq.RedeliveryPolicy;
 import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
+import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.MDC;
 
 import edu.psu.activemq.data.ErrorMessage;
@@ -65,6 +67,10 @@ public abstract class MessageProcessor {
   public static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
   public static final String UNIQUE_ID_MDC_KEY = "uniqueId";
   public static final String CORRELATION_ID_MDC_KEY = "correlationId";
+
+  public static final String SHOULDDELAYMESSAGE_PROP_NAME = "shoulddelay.feature";
+  public static final String SHOULDDELAYRETRYTHRESHOLDINCREASEAMOUNT_PROP_NAME = "shoulddelay.retrythreshold.increaseamount";
+  public static final String SHOULDDELAYRETRYWAIT_PROP_NAME = "shoulddelay.retry.wait";
 
   @Getter(value = AccessLevel.NONE)
   @Setter(value = AccessLevel.NONE)
@@ -87,6 +93,18 @@ public abstract class MessageProcessor {
   ActiveMQMessageProducer producer = null;
   MessageProducer errorProducer = null;
   Session errorSession;
+
+  @Inject
+  @ConfigProperty(name = MessageProcessor.SHOULDDELAYMESSAGE_PROP_NAME)
+  String configShouldDelayMessage;
+
+  @Inject
+  @ConfigProperty(name = MessageProcessor.SHOULDDELAYRETRYTHRESHOLDINCREASEAMOUNT_PROP_NAME)
+  String configShouldDelayRetryThresholdIncreaseAmount;
+
+  @Inject
+  @ConfigProperty(name = MessageProcessor.SHOULDDELAYRETRYWAIT_PROP_NAME)
+  String ConfigShouldDelayRetryWait;
 
   // configuration to delay message w/o processing
   Boolean shouldDelayMessage = null; // null not set need to look up config,
@@ -248,10 +266,24 @@ public abstract class MessageProcessor {
   // added
   private void delayMessage(Message message) {
     if (shouldDelayMessage == null) {
-      // TODO lookup based on config
-      shouldDelayMessage = true;
-      shouldDelayRetryWait = 300;
-      shouldDelayRetryThresholdIncreaseAmount = 1;
+      if (configShouldDelayMessage == null) {
+        shouldDelayMessage = false;
+      } else {
+        shouldDelayMessage = Boolean.parseBoolean(configShouldDelayMessage);
+
+        if (configShouldDelayRetryThresholdIncreaseAmount == null) {
+          shouldDelayRetryWait = 300;
+        } else {
+          shouldDelayRetryWait = Integer.parseInt(configShouldDelayRetryThresholdIncreaseAmount);
+        }
+
+        if (configShouldDelayRetryThresholdIncreaseAmount == null) {
+          shouldDelayRetryThresholdIncreaseAmount = 300;
+        } else {
+          shouldDelayRetryThresholdIncreaseAmount = Integer.parseInt(configShouldDelayRetryThresholdIncreaseAmount);
+        }
+
+      }
     }
 
     if (shouldDelayMessage == true) {
