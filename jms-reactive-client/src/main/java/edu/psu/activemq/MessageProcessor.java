@@ -88,6 +88,17 @@ public abstract class MessageProcessor {
   MessageProducer errorProducer = null;
   Session errorSession;
 
+  // configuration to delay message w/o processing
+  Boolean shouldDelayMessage = null; // null not set need to look up config,
+                                     // true/false set from config
+  Integer shouldDelayRetryThresholdIncreaseAmount = null; // null not set need
+                                                          // to lookup config,
+                                                          // >0 set and should
+                                                          // add this value to
+                                                          // requestRetryThreshold
+  Integer shouldDelayRetryWait = null; // null not set need to lookup config, >0
+  // set
+
   ObjectMapper objectMapper = new ObjectMapper();
 
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
@@ -172,6 +183,8 @@ public abstract class MessageProcessor {
                   log.error("Error setting MDC unique id", e1);
                 }
 
+                delayMessage(message);
+
                 handleMessage(message);
                 consumer.acknowledge();
                 log.debug("Acknowledge the message on the consumer");
@@ -228,6 +241,34 @@ public abstract class MessageProcessor {
       }
     });
     t.start();
+  }
+
+  // if we should Delay message and the retryCount is equal to one then we will
+  // create the exception with an intialoffset , enabled, and numberOfRetries
+  // added
+  private void delayMessage(Message message) {
+    if (shouldDelayMessage == null) {
+      // TODO lookup based on config
+      shouldDelayMessage = true;
+      shouldDelayRetryWait = 300;
+      shouldDelayRetryThresholdIncreaseAmount = 1;
+    }
+
+    if (shouldDelayMessage == true) {
+      int rc;
+      try {
+        rc = this.getRetryCount(message);
+      } catch (JMSException e) {
+        rc = 1;
+      }
+      if (rc == 1) {
+        UnableToProcessMessageException re = new UnableToProcessMessageException("Configed to Delay First Notification");
+        re.setInitialOffset(shouldDelayRetryWait);
+        re.setForceInitialOffsetDelay(true);
+        re.setNumberOfRetries(re.getNumberOfRetries() + shouldDelayRetryThresholdIncreaseAmount);
+        throw re;
+      }
+    }
   }
 
   private void handleUnableToProcessMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
