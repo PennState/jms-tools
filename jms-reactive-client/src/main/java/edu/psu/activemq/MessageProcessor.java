@@ -23,7 +23,6 @@ import java.io.PrintWriter;
 import java.io.StringWriter;
 import java.util.stream.Stream;
 
-import javax.inject.Inject;
 import javax.jms.Connection;
 import javax.jms.Destination;
 import javax.jms.JMSException;
@@ -47,7 +46,6 @@ import org.apache.activemq.RedeliveryPolicy;
 import org.apache.activemq.ScheduledMessage;
 import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
-import org.eclipse.microprofile.config.inject.ConfigProperty;
 import org.slf4j.MDC;
 
 import edu.psu.activemq.data.ErrorMessage;
@@ -95,16 +93,8 @@ public abstract class MessageProcessor {
   MessageProducer errorProducer = null;
   Session errorSession;
 
-  @Inject
-  @ConfigProperty(name = MessageProcessor.SHOULDDELAYMESSAGE_PROP_NAME)
   String configShouldDelayMessage;
-
-  @Inject
-  @ConfigProperty(name = MessageProcessor.SHOULDDELAYRETRYTHRESHOLDINCREASEAMOUNT_PROP_NAME)
   String configShouldDelayRetryThresholdIncreaseAmount;
-
-  @Inject
-  @ConfigProperty(name = MessageProcessor.SHOULDDELAYRETRYWAIT_PROP_NAME)
   String ConfigShouldDelayRetryWait;
 
   // configuration to delay message w/o processing
