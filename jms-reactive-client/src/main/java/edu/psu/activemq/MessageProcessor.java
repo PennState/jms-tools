@@ -53,6 +53,7 @@ import org.slf4j.MDC;
 import edu.psu.activemq.data.ErrorMessage;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 import edu.psu.activemq.exception.UnableToProcessMessageException.RetryStyle;
+import edu.psu.activemq.util.PropertyUtil;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -126,6 +127,32 @@ public abstract class MessageProcessor {
     AnnotationIntrospector jacksonIntrospector = new JacksonAnnotationIntrospector();
     AnnotationIntrospector pair = new AnnotationIntrospectorPair(jacksonIntrospector, jaxbIntrospector);
     objectMapper.setAnnotationIntrospector(pair);
+
+    configShouldDelayMessage = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYMESSAGE_PROP_NAME);
+    configShouldDelayRetryThresholdIncreaseAmount = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYRETRYTHRESHOLDINCREASEAMOUNT_PROP_NAME);
+    ConfigShouldDelayRetryWait = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYRETRYWAIT_PROP_NAME);
+
+    if (configShouldDelayMessage == null) {
+      shouldDelayMessage = false;
+    } else {
+      shouldDelayMessage = Boolean.parseBoolean(configShouldDelayMessage);
+
+      if (ConfigShouldDelayRetryWait == null) {
+        shouldDelayRetryWait = 300;
+      } else {
+        shouldDelayRetryWait = Integer.parseInt(ConfigShouldDelayRetryWait);
+      }
+
+      if (configShouldDelayRetryThresholdIncreaseAmount == null) {
+        shouldDelayRetryThresholdIncreaseAmount = 300;
+      } else {
+        shouldDelayRetryThresholdIncreaseAmount = Integer.parseInt(configShouldDelayRetryThresholdIncreaseAmount);
+      }
+
+    }
+    log.info("shouldDelayMessage:" + shouldDelayMessage);
+    log.info("shouldDelayRetryWait" + shouldDelayRetryWait);
+    log.info("shouldDelayRetryThresholdIncreaseAmount:" + shouldDelayRetryThresholdIncreaseAmount);
   }
 
   public void terminate() {
@@ -265,27 +292,6 @@ public abstract class MessageProcessor {
   // create the exception with an intialoffset , enabled, and numberOfRetries
   // added
   private void delayMessage(Message message) {
-    if (shouldDelayMessage == null) {
-      if (configShouldDelayMessage == null) {
-        shouldDelayMessage = false;
-      } else {
-        shouldDelayMessage = Boolean.parseBoolean(configShouldDelayMessage);
-
-        if (configShouldDelayRetryThresholdIncreaseAmount == null) {
-          shouldDelayRetryWait = 300;
-        } else {
-          shouldDelayRetryWait = Integer.parseInt(configShouldDelayRetryThresholdIncreaseAmount);
-        }
-
-        if (configShouldDelayRetryThresholdIncreaseAmount == null) {
-          shouldDelayRetryThresholdIncreaseAmount = 300;
-        } else {
-          shouldDelayRetryThresholdIncreaseAmount = Integer.parseInt(configShouldDelayRetryThresholdIncreaseAmount);
-        }
-
-      }
-    }
-
     if (shouldDelayMessage == true) {
       int rc;
       try {
@@ -294,6 +300,7 @@ public abstract class MessageProcessor {
         rc = 1;
       }
       if (rc == 1) {
+        log.info("shouldDelay configured, forcing delay of initialoffset : " + shouldDelayRetryWait);
         UnableToProcessMessageException re = new UnableToProcessMessageException("Configed to Delay First Notification");
         re.setInitialOffset(shouldDelayRetryWait);
         re.setForceInitialOffsetDelay(true);
