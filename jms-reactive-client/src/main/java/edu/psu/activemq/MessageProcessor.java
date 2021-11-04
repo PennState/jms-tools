@@ -51,6 +51,7 @@ import org.slf4j.MDC;
 import edu.psu.activemq.data.ErrorMessage;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 import edu.psu.activemq.exception.UnableToProcessMessageException.RetryStyle;
+import edu.psu.activemq.util.PropertyUtil;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -65,6 +66,10 @@ public abstract class MessageProcessor {
   public static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
   public static final String UNIQUE_ID_MDC_KEY = "uniqueId";
   public static final String CORRELATION_ID_MDC_KEY = "correlationId";
+
+  public static final String SHOULDDELAYMESSAGE_PROP_NAME = "shoulddelay.feature";
+  public static final String SHOULDDELAYRETRYTHRESHOLDINCREASEAMOUNT_PROP_NAME = "shoulddelay.retrythreshold.increaseamount";
+  public static final String SHOULDDELAYRETRYWAIT_PROP_NAME = "shoulddelay.retry.wait";
 
   @Getter(value = AccessLevel.NONE)
   @Setter(value = AccessLevel.NONE)
@@ -88,6 +93,21 @@ public abstract class MessageProcessor {
   MessageProducer errorProducer = null;
   Session errorSession;
 
+  String configShouldDelayMessage;
+  String configShouldDelayRetryThresholdIncreaseAmount;
+  String ConfigShouldDelayRetryWait;
+
+  // configuration to delay message w/o processing
+  Boolean shouldDelayMessage = null; // null not set need to look up config,
+                                     // true/false set from config
+  Integer shouldDelayRetryThresholdIncreaseAmount = null; // null not set need
+                                                          // to lookup config,
+                                                          // >0 set and should
+                                                          // add this value to
+                                                          // requestRetryThreshold
+  Integer shouldDelayRetryWait = null; // null not set need to lookup config, >0
+  // set
+
   ObjectMapper objectMapper = new ObjectMapper();
 
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
@@ -97,6 +117,32 @@ public abstract class MessageProcessor {
     AnnotationIntrospector jacksonIntrospector = new JacksonAnnotationIntrospector();
     AnnotationIntrospector pair = new AnnotationIntrospectorPair(jacksonIntrospector, jaxbIntrospector);
     objectMapper.setAnnotationIntrospector(pair);
+
+    configShouldDelayMessage = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYMESSAGE_PROP_NAME);
+    configShouldDelayRetryThresholdIncreaseAmount = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYRETRYTHRESHOLDINCREASEAMOUNT_PROP_NAME);
+    ConfigShouldDelayRetryWait = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYRETRYWAIT_PROP_NAME);
+
+    if (configShouldDelayMessage == null) {
+      shouldDelayMessage = false;
+    } else {
+      shouldDelayMessage = Boolean.parseBoolean(configShouldDelayMessage);
+
+      if (ConfigShouldDelayRetryWait == null) {
+        shouldDelayRetryWait = 300;
+      } else {
+        shouldDelayRetryWait = Integer.parseInt(ConfigShouldDelayRetryWait);
+      }
+
+      if (configShouldDelayRetryThresholdIncreaseAmount == null) {
+        shouldDelayRetryThresholdIncreaseAmount = 300;
+      } else {
+        shouldDelayRetryThresholdIncreaseAmount = Integer.parseInt(configShouldDelayRetryThresholdIncreaseAmount);
+      }
+
+    }
+    log.info("shouldDelayMessage:" + shouldDelayMessage);
+    log.info("shouldDelayRetryWait" + shouldDelayRetryWait);
+    log.info("shouldDelayRetryThresholdIncreaseAmount:" + shouldDelayRetryThresholdIncreaseAmount);
   }
 
   public void terminate() {
@@ -172,6 +218,8 @@ public abstract class MessageProcessor {
                   log.error("Error setting MDC unique id", e1);
                 }
 
+                delayMessage(message);
+
                 handleMessage(message);
                 consumer.acknowledge();
                 log.debug("Acknowledge the message on the consumer");
@@ -228,6 +276,28 @@ public abstract class MessageProcessor {
       }
     });
     t.start();
+  }
+
+  // if we should Delay message and the retryCount is equal to one then we will
+  // create the exception with an intialoffset , enabled, and numberOfRetries
+  // added
+  private void delayMessage(Message message) {
+    if (shouldDelayMessage == true) {
+      int rc;
+      try {
+        rc = this.getRetryCount(message);
+      } catch (JMSException e) {
+        rc = 1;
+      }
+      if (rc == 1) {
+        log.info("shouldDelay configured, forcing delay of initialoffset : " + shouldDelayRetryWait);
+        UnableToProcessMessageException re = new UnableToProcessMessageException("Configed to Delay First Notification");
+        re.setInitialOffset(shouldDelayRetryWait);
+        re.setForceInitialOffsetDelay(true);
+        re.setNumberOfRetries(re.getNumberOfRetries() + shouldDelayRetryThresholdIncreaseAmount);
+        throw re;
+      }
+    }
   }
 
   private void handleUnableToProcessMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
