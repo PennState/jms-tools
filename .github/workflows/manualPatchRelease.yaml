@@ -47,8 +47,8 @@ jobs:
         SIGNING_PASSPHRASE: ${{secrets.SIGNING_PASSPHRASE}}
         OSSRH_USERNAME: aitci
         OSSRH_PASSWORD: ${{secrets.OSSRH_PASSWORD}}
-        releaseVersion: ${{github.events.inputs.releaseVersion}}
-        nextVersion: ${{github.events.inputs.nextVersion}}
+        releaseVersion: ${{github.event.inputs.releaseVersion}}
+        nextVersion: ${{github.event.inputs.nextVersion}}
 
     # TODO: add steps to:
     # - Version POMs
