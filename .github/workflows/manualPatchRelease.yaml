@@ -1,6 +1,15 @@
 name: Manual - Patch Release
 on:
   workflow_dispatch:
+    inputs:
+      releaseVersion:
+        description: 'Version to Release ie 1.2.3'    
+        required: true
+        default: 'x.y.z'
+      nextVersion:
+        description: 'Version to Release ie 1.2.3-SNAPSHOT'    
+        required: true
+        default: 'x.y.z+1'
 
 jobs:
   build:
@@ -28,8 +37,8 @@ jobs:
         git log
         echo -n $SIGNING_PRIVATE | base64 -di > ~/private.asc
         gpg --pinentry-mode loopback --batch --no-tty --yes --passphrase $SIGNING_PASSPHRASE --import ~/private.asc
-        mvn -B clean build-helper:parse-version jgitflow:release-start -DreleaseVersion=$${parsedVersion.majorVersion}.$${parsedVersion.minorVersion}.$${parsedVersion.incrementVersion} -DdevelopmentVersion=$${parsedVersion.majorVersion}.$${parsedVersion.nextminorVersion}.$${parsedVersion.nextIncrementVersion}-SNAPSHOT -DallowUntracked=true -DallowSnapshots=false -DallowUntracked=true -Psign-artifacts
-        mvn -B jgitflow:release-finish -Dgpg.passphrase=$SIGNING_PASSPHRASE -DreleaseVersion=$${parsedVersion.majorVersion}.$${parsedVersion.minorVersion}.$${parsedVersion.incrementVersion} -DdevelopmentVersion=$${parsedVersion.majorVersion}.$${parsedVersion.nextminorVersion}.$${parsedVersion.nextIncrementVersion}-SNAPSHOT -DallowUntracked=true -DallowSnapshots=false -DallowUntracked=true -Psign-artifacts
+        mvn -B clean build-helper:parse-version jgitflow:release-start -DreleaseVersion=${releaseVersion} -DdevelopmentVersion=${nextVersion}-SNAPSHOT -DallowUntracked=true -DallowSnapshots=false -DallowUntracked=true -Psign-artifacts
+        mvn -B jgitflow:release-finish -Dgpg.passphrase=$SIGNING_PASSPHRASE -DreleaseVersion=${releaseVersion} -DdevelopmentVersion=${nextVersion}-SNAPSHOT -DallowUntracked=true -DallowSnapshots=false -DallowUntracked=true -Psign-artifacts
         git checkout develop
         git commit --amend -m '[skip-ci] Updating develop poms back to pre merge state'
         git push --all --follow-tags
@@ -38,6 +47,8 @@ jobs:
         SIGNING_PASSPHRASE: ${{secrets.SIGNING_PASSPHRASE}}
         OSSRH_USERNAME: aitci
         OSSRH_PASSWORD: ${{secrets.OSSRH_PASSWORD}}
+        releaseVersion: ${{github.events.input.releaseVersion}}
+        nextVersion: ${{github.events.input.nextVersion}}
 
     # TODO: add steps to:
     # - Version POMs
