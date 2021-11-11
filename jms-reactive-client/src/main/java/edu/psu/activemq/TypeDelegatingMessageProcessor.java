@@ -55,6 +55,17 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
     
     super.initialize();
   }
+  
+  @Override
+  public void terminate() {
+    log.debug("Terminating TypeDelegatingMessageProcessor");
+    super.terminate();
+    mapValueMap.forEach((k,v) -> {
+      log.debug("Calling clean up for Key: {}", k);
+      v.cleanUp.cleanUp();
+    });
+                                                  
+  }
 
   @Override
   @SuppressWarnings({ "rawtypes", "unchecked" })
@@ -64,6 +75,9 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
     try {
       String type = extractKey(tm).orElseThrow(()-> new UnableToProcessMessageException("Unable to determine message type"));
       MapValue mapValue = mapValueMap.get(type);
+      if (mapValue == null) {
+        throw new UnableToProcessMessageException("No processor mapped to type: " + type);
+      }
       mapValue.getProcessorConsumer().accept(mapValue.getConvertFunction().apply(tm.getText()));
     } catch (JMSException | TypeProcessorException e) {
       throw new UnableToProcessMessageException(e.getMessage(), e);
@@ -82,6 +96,7 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
     MapValue<T> mapValue = new MapValue<>();
     mapValue.setConvertFunction(delegate::parseMessage);
     mapValue.setProcessorConsumer(delegate::processMessage);
+    mapValue.setCleanUp(delegate::cleanUp);
     
     mapValueMap.put(key, mapValue);
   }
@@ -129,6 +144,7 @@ public abstract class TypeDelegatingMessageProcessor extends MessageProcessor {
   private class MapValue<T> {
     Function<String, T> convertFunction;
     Consumer<T> processorConsumer;
+    Cleanup cleanUp;
   }
 
 
