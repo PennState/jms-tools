@@ -32,16 +32,16 @@ public class RetryExceptionUtil {
     return createRetryBackoffException(message);
   }
   
-  public static UnableToProcessMessageException createRetryException(String message, int retryAmount) {
-    return createRetryBackoffException(message, retryAmount);
+  public static UnableToProcessMessageException createRetryException(String message, int retryWait) {
+    return createRetryBackoffException(message, retryWait);
   }
   
   public static UnableToProcessMessageException createRetryException(String message, Exception e) {
     return createRetryBackoffException(message, e);
   }
   
-  public static UnableToProcessMessageException createRetryException(String message, Exception e, int retryAmount) {
-    return createRetryBackOffException(message, e, retryAmount);
+  public static UnableToProcessMessageException createRetryException(String message, Exception e, int retryWait) {
+    return createRetryBackOffException(message, e, retryWait);
   }
   
 
@@ -52,9 +52,9 @@ public class RetryExceptionUtil {
     return utpe;
   }
   
-  public static UnableToProcessMessageException createRetryBackoffException(String message, int retryAmount) {
+  public static UnableToProcessMessageException createRetryBackoffException(String message, int retryWait) {
     UnableToProcessMessageException utpe = new UnableToProcessMessageException(message);
-    utpe.setRetry(retryAmount);
+    utpe.setRetry(retryWait);
     utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
     return utpe;
   }
@@ -66,25 +66,25 @@ public class RetryExceptionUtil {
     return utpe;
   }
   
-  public static UnableToProcessMessageException createRetryBackOffException(String message, Exception e, int retryAmount) {
+  public static UnableToProcessMessageException createRetryBackOffException(String message, Exception e, int retryWait) {
     UnableToProcessMessageException utpe = new UnableToProcessMessageException(message, e);
-    utpe.setRetry(retryAmount);
+    utpe.setRetry(retryWait);
     utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
     return utpe;
   }
   
-  public static UnableToProcessMessageException createRetryBackOffException(String message, int retryAmount, double backOffMultiplier, int numberOfRetries) {
+  public static UnableToProcessMessageException createRetryBackOffException(String message, int retryWait, double backOffMultiplier, int numberOfRetries) {
     UnableToProcessMessageException utpe = new UnableToProcessMessageException(message);
-    utpe.setRetry(retryAmount);
+    utpe.setRetry(retryWait);
     utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
     utpe.setBackOffMultiplier(backOffMultiplier);
     utpe.setNumberOfRetries(numberOfRetries);
     return utpe;
   }
   
-  public static UnableToProcessMessageException createRetryBackOffException(String message, Exception e, int retryAmount, double backOffMultiplier, int numberOfRetries) {
+  public static UnableToProcessMessageException createRetryBackOffException(String message, Exception e, int retryWait, double backOffMultiplier, int numberOfRetries) {
     UnableToProcessMessageException utpe = new UnableToProcessMessageException(message, e);
-    utpe.setRetry(retryAmount);
+    utpe.setRetry(retryWait);
     utpe.setRetryStyle(RetryStyle.EXPONENTIAL);
     utpe.setBackOffMultiplier(backOffMultiplier);
     utpe.setNumberOfRetries(numberOfRetries);
@@ -97,9 +97,9 @@ public class RetryExceptionUtil {
     return utpe;
   }
   
-  public static UnableToProcessMessageException createRetryNonBackoffException(String message, int retryAmount) {
+  public static UnableToProcessMessageException createRetryNonBackoffException(String message, int retryWait) {
     UnableToProcessMessageException utpe = new UnableToProcessMessageException(message);
-    utpe.setRetry(retryAmount);
+    utpe.setRetry(retryWait);
     return utpe;
   }
   
@@ -109,9 +109,9 @@ public class RetryExceptionUtil {
     return utpe;
   }
   
-  public static UnableToProcessMessageException createRetryNonBackoffException(String message, Exception e, int retryAmount) {
+  public static UnableToProcessMessageException createRetryNonBackoffException(String message, Exception e, int retryWait) {
     UnableToProcessMessageException utpe = new UnableToProcessMessageException(message, e);
-    utpe.setRetry(retryAmount);
+    utpe.setRetry(retryWait);
     return utpe;
   }
   

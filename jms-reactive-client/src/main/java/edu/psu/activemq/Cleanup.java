@@ -17,18 +17,8 @@ package edu.psu.activemq;
  * under the License.
  */
 
-import edu.psu.activemq.exception.TypeProcessorException;
-import edu.psu.activemq.exception.UnableToProcessMessageException;
+@FunctionalInterface
+public interface Cleanup {
 
-public interface TypeProcessor<T> {
-
-  T parseMessage(String json) throws TypeProcessorException;
-
-  void processMessage(T t) throws UnableToProcessMessageException;
-  
-  default void cleanUp() {
-    //Default implementation so it is not required to implement 
-  }
-
+  void cleanUp();
 }
-

@@ -32,6 +32,13 @@ import javax.jms.Queue;
 import javax.jms.Session;
 import javax.jms.TextMessage;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.databind.AnnotationIntrospector;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
+import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
+import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
+
 import org.apache.activemq.ActiveMQConnection;
 import org.apache.activemq.ActiveMQMessageConsumer;
 import org.apache.activemq.ActiveMQMessageProducer;
@@ -41,16 +48,10 @@ import org.apache.activemq.command.ActiveMQMessage;
 import org.apache.activemq.command.ActiveMQQueue;
 import org.slf4j.MDC;
 
-import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.databind.AnnotationIntrospector;
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.introspect.AnnotationIntrospectorPair;
-import com.fasterxml.jackson.databind.introspect.JacksonAnnotationIntrospector;
-import com.fasterxml.jackson.module.jaxb.JaxbAnnotationIntrospector;
-
 import edu.psu.activemq.data.ErrorMessage;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 import edu.psu.activemq.exception.UnableToProcessMessageException.RetryStyle;
+import edu.psu.activemq.util.PropertyUtil;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -64,6 +65,11 @@ public abstract class MessageProcessor {
   public static final String AMQ_JOB_ID_PROP_NAME = "scheduledJobId";
   public static final String DELIVERY_COUNT_PROP_NAME = "swe-delivery-count";
   public static final String UNIQUE_ID_MDC_KEY = "uniqueId";
+  public static final String CORRELATION_ID_MDC_KEY = "correlationId";
+
+  public static final String SHOULDDELAYMESSAGE_PROP_NAME = "shoulddelay.feature";
+  public static final String SHOULDDELAYRETRYTHRESHOLDINCREASEAMOUNT_PROP_NAME = "shoulddelay.retrythreshold.increaseamount";
+  public static final String SHOULDDELAYRETRYWAIT_PROP_NAME = "shoulddelay.retry.wait";
 
   @Getter(value = AccessLevel.NONE)
   @Setter(value = AccessLevel.NONE)
@@ -87,6 +93,21 @@ public abstract class MessageProcessor {
   MessageProducer errorProducer = null;
   Session errorSession;
 
+  String configShouldDelayMessage;
+  String configShouldDelayRetryThresholdIncreaseAmount;
+  String ConfigShouldDelayRetryWait;
+
+  // configuration to delay message w/o processing
+  Boolean shouldDelayMessage = null; // null not set need to look up config,
+                                     // true/false set from config
+  Integer shouldDelayRetryThresholdIncreaseAmount = null; // null not set need
+                                                          // to lookup config,
+                                                          // >0 set and should
+                                                          // add this value to
+                                                          // requestRetryThreshold
+  Integer shouldDelayRetryWait = null; // null not set need to lookup config, >0
+  // set
+
   ObjectMapper objectMapper = new ObjectMapper();
 
   protected abstract void handleMessage(Message message) throws UnableToProcessMessageException;
@@ -96,6 +117,32 @@ public abstract class MessageProcessor {
     AnnotationIntrospector jacksonIntrospector = new JacksonAnnotationIntrospector();
     AnnotationIntrospector pair = new AnnotationIntrospectorPair(jacksonIntrospector, jaxbIntrospector);
     objectMapper.setAnnotationIntrospector(pair);
+
+    configShouldDelayMessage = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYMESSAGE_PROP_NAME);
+    configShouldDelayRetryThresholdIncreaseAmount = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYRETRYTHRESHOLDINCREASEAMOUNT_PROP_NAME);
+    ConfigShouldDelayRetryWait = PropertyUtil.getProperty(MessageProcessor.SHOULDDELAYRETRYWAIT_PROP_NAME);
+
+    if (configShouldDelayMessage == null) {
+      shouldDelayMessage = false;
+    } else {
+      shouldDelayMessage = Boolean.parseBoolean(configShouldDelayMessage);
+
+      if (ConfigShouldDelayRetryWait == null) {
+        shouldDelayRetryWait = 300;
+      } else {
+        shouldDelayRetryWait = Integer.parseInt(ConfigShouldDelayRetryWait);
+      }
+
+      if (configShouldDelayRetryThresholdIncreaseAmount == null) {
+        shouldDelayRetryThresholdIncreaseAmount = 300;
+      } else {
+        shouldDelayRetryThresholdIncreaseAmount = Integer.parseInt(configShouldDelayRetryThresholdIncreaseAmount);
+      }
+
+    }
+    log.info("shouldDelayMessage:" + shouldDelayMessage);
+    log.info("shouldDelayRetryWait" + shouldDelayRetryWait);
+    log.info("shouldDelayRetryThresholdIncreaseAmount:" + shouldDelayRetryThresholdIncreaseAmount);
   }
 
   public void terminate() {
@@ -166,9 +213,12 @@ public abstract class MessageProcessor {
                 // set unique id for logging
                 try {
                   MDC.put(UNIQUE_ID_MDC_KEY, message.getJMSMessageID());
+                  MDC.put(CORRELATION_ID_MDC_KEY, message.getJMSCorrelationID());
                 } catch (IllegalArgumentException | JMSException e1) {
                   log.error("Error setting MDC unique id", e1);
                 }
+
+                delayMessage(message);
 
                 handleMessage(message);
                 consumer.acknowledge();
@@ -183,6 +233,7 @@ public abstract class MessageProcessor {
                 // remove unique id for logging
                 try {
                   MDC.remove(UNIQUE_ID_MDC_KEY);
+                  MDC.remove(CORRELATION_ID_MDC_KEY);
                 } catch (IllegalArgumentException e1) {
                   log.error("Error remvoing MDC unique id");
                 }
@@ -225,6 +276,28 @@ public abstract class MessageProcessor {
       }
     });
     t.start();
+  }
+
+  // if we should Delay message and the retryCount is equal to one then we will
+  // create the exception with an intialoffset , enabled, and numberOfRetries
+  // added
+  private void delayMessage(Message message) {
+    if (shouldDelayMessage == true) {
+      int rc;
+      try {
+        rc = this.getRetryCount(message);
+      } catch (JMSException e) {
+        rc = 1;
+      }
+      if (rc == 1) {
+        log.info("shouldDelay configured, forcing delay of initialoffset : " + shouldDelayRetryWait);
+        UnableToProcessMessageException re = new UnableToProcessMessageException("Configed to Delay First Notification");
+        re.setInitialOffset(shouldDelayRetryWait);
+        re.setForceInitialOffsetDelay(true);
+        re.setNumberOfRetries(re.getNumberOfRetries() + shouldDelayRetryThresholdIncreaseAmount);
+        throw re;
+      }
+    }
   }
 
   private void handleUnableToProcessMessage(Message message, UnableToProcessMessageException upme) throws JMSException, IOException {
@@ -278,9 +351,20 @@ public abstract class MessageProcessor {
     msg.setProperty(AMQ_JOB_ID_PROP_NAME, null);
     msg.setIntProperty(DELIVERY_COUNT_PROP_NAME, ++retryCount);
 
+    if (msg.getJMSCorrelationID() == null || msg.getJMSCorrelationID()
+                                                .equals("")) {
+      msg.setJMSCorrelationID(msg.getJMSMessageID());
+    }
+
     return msg;
   }
 
+  /*
+   * long calculateRetryWait(int retryCount, UnableToProcessMessageException
+   * upme) if UnableToProcessMessageException.ForceRetryWaitDelay is set as GT
+   * 0, then that value is used for the retryWait used for when systems are down
+   * and tell us when they'll be back online (ie. workday)
+   */
   public long calculateRetryWait(int retryCount, UnableToProcessMessageException upme) {
     // Assume linear
     long retryWait = upme.getRetryWait();
@@ -288,6 +372,11 @@ public abstract class MessageProcessor {
     Integer initialOffset = upme.getInitialOffset();
     if (initialOffset == null) {
       initialOffset = 0;
+    }
+
+    // force initial offset will retryWait that amount
+    if (upme.isForceInitialOffsetDelay()) {
+      return initialOffset.longValue();
     }
 
     if (retryCount == 1 && initialOffset > 0) {

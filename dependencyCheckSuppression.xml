@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<suppressions xmlns="https://jeremylong.github.io/DependencyCheck/dependency-suppression.1.1.xsd">
+    <suppress>
+
+        <!-- ActiveMQ -->
+
+        <cve>CVE-2015-5182</cve>        <!-- Ignores Jolokia vulnerability since we only use the AMQ client -->
+        <cve>CVE-2015-5183</cve>        <!-- Ignores HawtIO console vulnerability since we only use the AMQ client -->
+        <cve>CVE-2015-5184</cve>        <!-- Ignores HawtIO console vulnerability since we only use the AMQ client -->
+        <cve>CVE-2018-8006</cve>        <!-- Ignores vulnerabilities in the AMQ web-based admin application since we only use the AMQ client -->
+        <cve>CVE-2021-20289</cve>       <!-- Ignores resteasy jackson provider vulnerability -->
+    </suppress>
+</suppressions>
