@@ -21,7 +21,7 @@ under the License.
 
   <groupId>edu.psu.swe.libraries</groupId>
   <artifactId>jms-tools</artifactId>
-  <version>0.15</version>
+  <version>0.16.11</version>
   <packaging>pom</packaging>
   <url>${project.parent}/libraries/jms-utils</url>
 
@@ -82,6 +82,8 @@ under the License.
     <java.compiler.source>1.8</java.compiler.source>
     <java.compiler.target>1.8</java.compiler.target>
 
+    <dependency-check.skip>true</dependency-check.skip>
+
     <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     <project.reporting.sourceEncoding>UTF-8</project.reporting.sourceEncoding>
 
@@ -98,19 +100,16 @@ under the License.
          
          See: https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=911925 -->
     <argLine>-Djdk.net.URLClassPath.disableClassPathURLCheck=true</argLine>
-    
-    <activemq.version>5.15.4</activemq.version>
+
+    <activemq.version>5.15.9</activemq.version>
     <assertj.version>3.11.1</assertj.version>
-    <cdi-api.version>2.0.SP1</cdi-api.version>
-    <junit-qualifier />
-    <junit-minor.version>3.2</junit-minor.version>
-    <junit-jupiter.version>5.${junit-minor.version}${junit-qualifier}</junit-jupiter.version>
-    <junit-platform.version>1.${junit-minor.version}${junit-qualifier}</junit-platform.version>
+    <cdi-api.version>2.0.2</cdi-api.version>
+    <junit.version>5.6.0</junit.version>
     <logback.version>1.2.3</logback.version>
     <lombok.version>1.18.4</lombok.version>
     <microprofile-config.version>1.3</microprofile-config.version>
-    <mockito.version>2.23.4</mockito.version>
-    <resteasy-jackson2.version>3.6.2.Final</resteasy-jackson2.version>
+    <mockito.version>3.3.0</mockito.version>
+    <resteasy-jackson2.version>4.6.0.Final</resteasy-jackson2.version>
     <slf4j.version>1.7.25</slf4j.version>
   </properties>
 
@@ -126,7 +125,7 @@ under the License.
       <dependency>
         <groupId>org.junit</groupId>
         <artifactId>junit-bom</artifactId>
-        <version>${junit-jupiter.version}</version>
+        <version>${junit.version}</version>
         <type>pom</type>
         <scope>import</scope>
       </dependency>
@@ -157,8 +156,8 @@ under the License.
         <version>${microprofile-config.version}</version>
       </dependency>
       <dependency>
-        <groupId>javax.enterprise</groupId>
-        <artifactId>cdi-api</artifactId>
+        <groupId>jakarta.enterprise</groupId>
+        <artifactId>jakarta.enterprise.cdi-api</artifactId>
         <version>${cdi-api.version}</version>
       </dependency>
 
@@ -223,23 +222,6 @@ under the License.
   <build>
     <plugins>
       <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-release-plugin</artifactId>
-        <version>2.2.2</version>
-        <configuration>
-          <tagNameFormat>JRC-${project.version}</tagNameFormat>
-        </configuration>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.maven.plugins</groupId>
-        <artifactId>maven-compiler-plugin</artifactId>
-        <version>3.1</version>
-        <configuration>
-          <source>${java.compiler.source}</source>
-          <target>${java.compiler.target}</target>
-        </configuration>
-      </plugin>
-      <plugin>
         <groupId>org.sonatype.plugins</groupId>
         <artifactId>nexus-staging-maven-plugin</artifactId>
         <version>1.6.3</version>
@@ -252,8 +234,17 @@ under the License.
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
+        <artifactId>maven-compiler-plugin</artifactId>
+        <version>3.1</version>
+        <configuration>
+          <source>${java.compiler.source}</source>
+          <target>${java.compiler.target}</target>
+        </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.maven.plugins</groupId>
         <artifactId>maven-javadoc-plugin</artifactId>
-        <version>2.10.3</version>
+        <version>3.1.1</version>
         <executions>
           <execution>
             <id>attach-javadocs</id>
@@ -264,8 +255,14 @@ under the License.
           </execution>
         </executions>
         <configuration>
+          <source>8</source>
           <additionalparam>-Xdoclint:none</additionalparam>
         </configuration>
+      </plugin>
+      <plugin>
+        <groupId>org.apache.rat</groupId>
+        <artifactId>apache-rat-plugin</artifactId>
+        <version>0.11</version>
       </plugin>
       <plugin>
         <groupId>org.apache.maven.plugins</groupId>
@@ -283,11 +280,13 @@ under the License.
       <plugin>
         <groupId>org.owasp</groupId>
         <artifactId>dependency-check-maven</artifactId>
-        <version>3.3.4</version>
+        <version>5.3.0</version>
         <configuration>
-          <failOnError>true</failOnError>
-          <failBuildOnCVSS>8</failBuildOnCVSS>
-          <!-- <failBuildOnAnyVulnerability>true</failBuildOnAnyVulnerability> -->
+          <cveValidForHours>24</cveValidForHours>
+          <format>ALL</format>
+          <failBuildOnAnyVulnerability>true</failBuildOnAnyVulnerability>
+          <failOnError>false</failOnError>
+          <suppressionFiles>dependencyCheckSuppression.xml</suppressionFiles>
         </configuration>
         <executions>
           <execution>
@@ -297,10 +296,6 @@ under the License.
             </goals>
           </execution>
         </executions>
-      </plugin>
-      <plugin>
-        <groupId>org.apache.rat</groupId>
-        <artifactId>apache-rat-plugin</artifactId>
       </plugin>
       <plugin>
         <groupId>org.jacoco</groupId>
@@ -317,24 +312,51 @@ under the License.
           <destFile>${sonar.jacoco.reportPath}</destFile>
         </configuration>
       </plugin>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>buildnumber-maven-plugin</artifactId>
+        <version>1.3</version>
+        <executions>
+          <execution>
+            <phase>validate</phase>
+            <goals>
+              <goal>create</goal>
+            </goals>
+          </execution>
+        </executions>
+        <configuration>
+          <shortRevisionLength>7</shortRevisionLength>
+          <doCheck>false</doCheck>
+          <doUpdate>false</doUpdate>
+        </configuration>
+      </plugin>
     </plugins>
     <pluginManagement>
       <plugins>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-surefire-plugin</artifactId>
+          <version>2.22.2</version>
+        </plugin>
+        <plugin>
+          <groupId>org.apache.maven.plugins</groupId>
+          <artifactId>maven-failsafe-plugin</artifactId>
+          <version>2.22.2</version>
+        </plugin>
         <plugin>
           <groupId>io.ultreia.java4all.jgitflow</groupId>
           <artifactId>jgitflow-maven-plugin</artifactId>
           <version>1.0.0-rc-1</version>
           <configuration>
             <autoVersionSubmodules>true</autoVersionSubmodules>
+            <allowUntracked>true</allowUntracked>
             <flowInitContext>
               <versionTagPrefix>REL-</versionTagPrefix>
             </flowInitContext>
+            <localOnly>true</localOnly>
+            <incrementDevelopFromReleaseVersion>true</incrementDevelopFromReleaseVersion>
+            <versionNumberToIncrement>1</versionNumberToIncrement>
           </configuration>
-        </plugin>
-        <plugin>
-          <groupId>org.apache.maven.plugins</groupId>
-          <artifactId>maven-surefire-plugin</artifactId>
-          <version>2.22.1</version>
         </plugin>
         <plugin>
           <groupId>org.apache.rat</groupId>
@@ -353,7 +375,10 @@ under the License.
             <copyrightMessage>Copyright (c) 2018 by The Pennsylvania State University</copyrightMessage>
             <excludes>
               <exclude>**/*.md</exclude>
+              <exclude>**/*.xml</exclude>
               <exclude>**/.factorypath</exclude>
+              <exclude>.github/**/*.*</exclude>
+              <exclude>.vscode/**/*.*</exclude>
             </excludes>
           </configuration>
         </plugin>
@@ -380,6 +405,15 @@ under the License.
                 <goals>
                   <goal>sign</goal>
                 </goals>
+                <configuration>
+                  <gpgArguments>
+                    <arg>--pinentry-mode</arg>
+                    <arg>loopback</arg>
+                    <arg>--batch</arg>
+                    <arg>--no-tty</arg>
+                    <arg>--yes</arg>
+                  </gpgArguments>
+                </configuration>
               </execution>
             </executions>
           </plugin>
