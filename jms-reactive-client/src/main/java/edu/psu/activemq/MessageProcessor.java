@@ -52,6 +52,7 @@ import edu.psu.activemq.data.ErrorMessage;
 import edu.psu.activemq.exception.UnableToProcessMessageException;
 import edu.psu.activemq.exception.UnableToProcessMessageException.RetryStyle;
 import edu.psu.activemq.util.PropertyUtil;
+import edu.psu.activemq.util.RetryExceptionUtil;
 import lombok.AccessLevel;
 import lombok.Data;
 import lombok.Getter;
@@ -218,7 +219,7 @@ public abstract class MessageProcessor {
                   log.error("Error setting MDC unique id", e1);
                 }
 
-                delayMessage(message);
+                shouldDelayMessage(message);
 
                 handleMessage(message);
                 consumer.acknowledge();
@@ -281,7 +282,7 @@ public abstract class MessageProcessor {
   // if we should Delay message and the retryCount is equal to one then we will
   // create the exception with an intialoffset , enabled, and numberOfRetries
   // added
-  private void delayMessage(Message message) {
+  private void shouldDelayMessage(Message message) {
     if (shouldDelayMessage == true) {
       int rc;
       try {
@@ -292,6 +293,7 @@ public abstract class MessageProcessor {
       if (rc == 1) {
         log.info("shouldDelay configured, forcing delay of initialoffset : " + shouldDelayRetryWait);
         UnableToProcessMessageException re = new UnableToProcessMessageException("Configed to Delay First Notification");
+        re.setRetry(RetryExceptionUtil.DEFAULT_RETRY);
         re.setInitialOffset(shouldDelayRetryWait);
         re.setForceInitialOffsetDelay(true);
         re.setNumberOfRetries(re.getNumberOfRetries() + shouldDelayRetryThresholdIncreaseAmount);
