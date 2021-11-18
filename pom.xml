@@ -373,6 +373,7 @@ under the License.
             <addLicenseHeaders>true</addLicenseHeaders>
             <copyrightMessage>Copyright (c) 2018 by The Pennsylvania State University</copyrightMessage>
             <excludes>
+              <excludes>**/resources/META-INF/services/*</excludes>
               <exclude>**/*.md</exclude>
               <exclude>**/*.xml</exclude>
               <exclude>**/.factorypath</exclude>
