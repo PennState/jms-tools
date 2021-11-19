@@ -36,16 +36,7 @@ public class JmsToolsLogConfiguration extends ContextAwareBase implements Config
     @Override
     public void configure(LoggerContext lc) {
 
-        PatternLayoutEncoder ple = new PatternLayoutEncoder();
-
-        ple.setPattern("%d{HH:mm:ss.SSS} [%X{uniqueId}] [%X{correlationId}] [%thread] %-5level %logger - %msg%xException%n");
-        ple.setContext(lc);
-        ple.start();
-
-        ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<ILoggingEvent>();
-        consoleAppender.setEncoder(ple);
-        consoleAppender.setContext(lc);
-        consoleAppender.start();
+        // configuration from environment
 
         String config_console_root_log_level = PropertyUtil.getProperty("CONSOLE_ROOT_LOG_LEVEL");
         Level rootLevel = Level.toLevel(config_console_root_log_level, Level.WARN);
@@ -53,16 +44,33 @@ public class JmsToolsLogConfiguration extends ContextAwareBase implements Config
         String config_console_log_level = PropertyUtil.getProperty("CONSOLE_LOG_LEVEL");
         Level psuPackageLevel = Level.toLevel(config_console_log_level, Level.INFO);
 
+        // pattern layout
+
+        PatternLayoutEncoder ple = new PatternLayoutEncoder();
+        ple.setPattern("%d{HH:mm:ss.SSS} [%X{uniqueId}] [%X{correlationId}] [%thread] %-5level %logger - %msg%xException%n");
+        ple.setContext(lc);
+        ple.start();
+
+        // console Appender
+
+        ConsoleAppender<ILoggingEvent> consoleAppender = new ConsoleAppender<ILoggingEvent>();
+        consoleAppender.setEncoder(ple);
+        consoleAppender.setContext(lc);
+        consoleAppender.start();
+
+        // edu.psu logger to set level
+
         Logger psuPackageLogger = lc.getLogger("edu.psu");
         psuPackageLogger.addAppender(consoleAppender);
         psuPackageLogger.setLevel(psuPackageLevel);
+        psuPackageLogger.setAdditive(false);
 
         Logger rootLogger = lc.getLogger(Logger.ROOT_LOGGER_NAME);
         rootLogger.addAppender(consoleAppender);
         rootLogger.setLevel(rootLevel);
 
-        addInfo("Logback configuration based on root " + rootLevel + " and edu.psu " + psuPackageLevel);
-        System.out.println("Logback configuration based on root " + rootLevel + " and edu.psu " + psuPackageLevel);
+        addInfo("Logback configuration based on root " + rootLevel + " and edu.psu " + psuPackageLevel + " rev:1");
+        System.out.println("Logback configuration based on root " + rootLevel + " and edu.psu " + psuPackageLevel + " rev:1");
     }
 
 }

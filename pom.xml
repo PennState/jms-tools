@@ -21,7 +21,7 @@ under the License.
 
   <groupId>edu.psu.swe.libraries</groupId>
   <artifactId>jms-tools</artifactId>
-  <version>0.16.23</version>
+  <version>0.16.24</version>
   <packaging>pom</packaging>
   <url>${project.parent}/libraries/jms-utils</url>
 
