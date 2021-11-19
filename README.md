@@ -12,4 +12,10 @@ To delay all messages, you can turn on a feature and configure the retry_wait am
 
 ## CHANGE IN LOGGING SETUP
 
-Removing the logback.xml will allow the LogConfiguration class to take over the configuration of the logger
+Removing the logback.xml from implementation project will allow the LogConfiguration class to take over the configuration of the logger
+
+Log Level Settings
+```
+CONSOLE_ROOT_LOG_LEVEL - LOG Level for all (ignoring edu.psu) packages
+CONSOLE_LOG_LEVEL - LOG Level for edu.psu packages
+```

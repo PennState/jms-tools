@@ -1,5 +1,6 @@
 package edu.psu.activemq.configuration;
 
+import ch.qos.logback.classic.Level;
 import ch.qos.logback.classic.Logger;
 import ch.qos.logback.classic.LoggerContext;
 import ch.qos.logback.classic.encoder.PatternLayoutEncoder;
@@ -7,6 +8,7 @@ import ch.qos.logback.classic.spi.Configurator;
 import ch.qos.logback.classic.spi.ILoggingEvent;
 import ch.qos.logback.core.ConsoleAppender;
 import ch.qos.logback.core.spi.ContextAwareBase;
+import edu.psu.activemq.util.PropertyUtil;
 
 /*
  * Copyright (c) 2018 by The Pennsylvania State University
@@ -34,8 +36,6 @@ public class JmsToolsLogConfiguration extends ContextAwareBase implements Config
     @Override
     public void configure(LoggerContext lc) {
 
-        addInfo("Setting up default configuration.");
-
         PatternLayoutEncoder ple = new PatternLayoutEncoder();
 
         ple.setPattern("%d{HH:mm:ss.SSS} [%X{uniqueId}] [%X{correlationId}] [%thread] %-5level %logger - %msg%xException%n");
@@ -47,9 +47,22 @@ public class JmsToolsLogConfiguration extends ContextAwareBase implements Config
         consoleAppender.setContext(lc);
         consoleAppender.start();
 
+        String config_console_root_log_level = PropertyUtil.getProperty("CONSOLE_ROOT_LOG_LEVEL");
+        Level rootLevel = Level.toLevel(config_console_root_log_level, Level.WARN);
+
+        String config_console_log_level = PropertyUtil.getProperty("CONSOLE_LOG_LEVEL");
+        Level psuPackageLevel = Level.toLevel(config_console_log_level, Level.INFO);
+
+        Logger psuPackageLogger = lc.getLogger("edu.psu");
+        psuPackageLogger.addAppender(consoleAppender);
+        psuPackageLogger.setLevel(psuPackageLevel);
+
         Logger rootLogger = lc.getLogger(Logger.ROOT_LOGGER_NAME);
         rootLogger.addAppender(consoleAppender);
+        rootLogger.setLevel(rootLevel);
 
+        addInfo("Logback configuration based on root " + rootLevel + " and edu.psu " + psuPackageLevel);
+        System.out.println("Logback configuration based on root " + rootLevel + " and edu.psu " + psuPackageLevel);
     }
 
 }
